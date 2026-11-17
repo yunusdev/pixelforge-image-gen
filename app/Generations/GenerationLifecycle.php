@@ -122,7 +122,7 @@ class GenerationLifecycle
     private function locked(Generation $generation, callable $change): Generation
     {
         return DB::transaction(function () use ($generation, $change): Generation {
-            $locked = Generation::query()->lockForUpdate()->findOrFail($generation->getKey());
+            $locked = Generation::query()->whereKey($generation->getKey())->lockForUpdate()->firstOrFail();
             $change($locked);
 
             return $locked;

@@ -1,6 +1,7 @@
 <?php
 
 use App\Generations\GenerationStatus;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Generation;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
@@ -67,6 +68,7 @@ test('polling reloads only the generations', function () {
     $this->actingAs($this->user)
         ->get(route('create'), [
             'X-Inertia' => 'true',
+            'X-Inertia-Version' => app(HandleInertiaRequests::class)->version(request()),
             'X-Inertia-Partial-Component' => 'Create',
             'X-Inertia-Partial-Data' => 'generations',
         ])

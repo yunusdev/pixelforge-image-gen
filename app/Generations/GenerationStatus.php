@@ -2,6 +2,8 @@
 
 namespace App\Generations;
 
+use UnexpectedValueException;
+
 /**
  * Where a generation is. It only ever moves forward:
  * Waiting for a slot → queued → processing → succeeded or failed (both final).
@@ -28,6 +30,7 @@ enum GenerationStatus: string
             'processing' => self::Processing,
             'succeeded' => self::Succeeded,
             'failed' => self::Failed,
+            default => throw new UnexpectedValueException("Unknown Pixelforge status: {$status}"),
         };
     }
 

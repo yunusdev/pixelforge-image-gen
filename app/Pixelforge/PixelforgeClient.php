@@ -48,7 +48,7 @@ class PixelforgeClient
      * POST /v1/generations, with our generation UUID as the Idempotency-Key and in metadata,
      * so a retry never creates or bills a second generation.
      *
-     * @param  array{prompt: string, size: string, quality: string, reference_images: list<string>}  $settings
+     * @param  array{prompt: string, size: string, quality: string, reference_images: array<int, string>}  $settings
      *
      * @throws TemporaryError|PermanentError|PixelforgeAuthError
      */

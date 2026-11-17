@@ -20,7 +20,7 @@ class GenerationController extends Controller
             return back()->withErrors(['prompt' => "Prices couldn't be loaded from Pixelforge. Try again in a moment."]);
         }
 
-        /** @var array{prompt: string, size: string, quality: string, reference_images: list<string>} $settings */
+        /** @var array{prompt: string, size: string, quality: string, reference_images: array<int, string>} $settings */
         $settings = $request->safe()->only(['prompt', 'size', 'quality', 'reference_images']);
         $generation = $generations->submit($request->user(), $settings, $rules);
 

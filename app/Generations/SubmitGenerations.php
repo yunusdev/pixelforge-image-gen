@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
 class SubmitGenerations
 {
     /**
-     * @param  array{prompt: string, size: string, quality: string, reference_images: list<string>}  $settings
+     * @param  array{prompt: string, size: string, quality: string, reference_images: array<int, string>}  $settings
      */
     public function submit(User $user, array $settings, PricingRules $rules): Generation
     {

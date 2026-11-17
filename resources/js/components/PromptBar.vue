@@ -130,6 +130,27 @@ function removeReference(index: number): void {
     settings.value.referenceImages.splice(index, 1);
 }
 
+/** "Try again" / "Use these settings": copy a generation's settings into the bar, for a fresh estimate. */
+async function fill(copied: {
+    prompt: string;
+    size: Size;
+    quality: Quality;
+    reference_images: string[];
+}): Promise<void> {
+    settings.value = {
+        prompt: copied.prompt,
+        size: copied.size,
+        quality: copied.quality,
+        referenceImages: [...copied.reference_images],
+    };
+    touched.value = true;
+    form.clearErrors();
+    await nextTick();
+    document.getElementById('prompt')?.focus();
+}
+
+defineExpose({ fill });
+
 function generate(): void {
     touched.value = true;
 
