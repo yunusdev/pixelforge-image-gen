@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Credits\Ledger;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -34,6 +35,15 @@ class UserFactory extends Factory
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
         ];
+    }
+
+    /** Every user starts with the sign-up bonus, as signing up gives it. */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            app(Ledger::class)->signUpBonus($user);
+            $user->refresh();
+        });
     }
 
     /**

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * One request by a user for one image, from submit until it succeeds or fails.
@@ -74,6 +75,16 @@ class Generation extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The ledger entry for its actual charge; at most one, once it has succeeded.
+     *
+     * @return HasOne<LedgerEntry, $this>
+     */
+    public function chargeEntry(): HasOne
+    {
+        return $this->hasOne(LedgerEntry::class);
     }
 
     /** What the user has paid for it, in nanodollars: the actual charge once succeeded, otherwise nothing. */

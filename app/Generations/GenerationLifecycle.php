@@ -2,6 +2,7 @@
 
 namespace App\Generations;
 
+use App\Credits\Ledger;
 use App\Models\Generation;
 use App\Pixelforge\PixelforgeGeneration;
 use App\Pricing\Pricing;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\DB;
  */
 class GenerationLifecycle
 {
+    public function __construct(private readonly Ledger $ledger) {}
+
     /**
      * Apply what Pixelforge reports about a generation. Its id and locked rates are kept the
      * first time we see them; the status moves only if the snapshot is further along.
@@ -87,7 +90,7 @@ class GenerationLifecycle
 
     /**
      * Usage × the generation's locked rates gives the provider cost; the actual charge is capped
-     * at the estimate's top (ADR-0002). Ticket 06 adds the ledger entry in this same transaction.
+     * at the estimate's top (ADR-0002). The ledger entry for it is written in this same transaction.
      */
     private function recordSuccess(Generation $generation, PixelforgeGeneration $snapshot): void
     {
@@ -116,6 +119,8 @@ class GenerationLifecycle
             'capped' => $actual->capped,
             'absorbed' => $actual->absorbed,
         ]);
+
+        $this->ledger->charge($generation);
     }
 
     /** @param  callable(Generation): void  $change */

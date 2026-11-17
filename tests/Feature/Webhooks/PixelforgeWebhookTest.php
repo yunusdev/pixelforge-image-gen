@@ -160,7 +160,9 @@ test('never twice: the same event delivered twice is recorded and charged once',
     deliver($event)->assertOk();
 
     expect($generation->fresh()->actual_charge)->toBe(65_056_250)
-        ->and(DB::table('processed_webhook_events')->where('event_id', 'evt_dup')->count())->toBe(1);
+        ->and(DB::table('processed_webhook_events')->where('event_id', 'evt_dup')->count())->toBe(1)
+        ->and($generation->chargeEntry()->count())->toBe(1)
+        ->and($generation->user->fresh()->balance)->toBe(5_000_000_000 - 65_056_250);
 });
 
 test('never twice: a replayed event id is a no-op even if its contents differ', function () {

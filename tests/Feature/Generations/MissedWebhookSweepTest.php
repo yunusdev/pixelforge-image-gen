@@ -80,6 +80,8 @@ test('never twice: the backup check and the webhook both reporting success recor
         ->status->toBe(GenerationStatus::Succeeded)
         ->actual_charge->toBe(65_056_250)
         ->capped->toBeFalse();
+    expect($generation->chargeEntry()->count())->toBe(1)
+        ->and($generation->user->fresh()->balance)->toBe(5_000_000_000 - 65_056_250);
 });
 
 test('generations updated in the last 2 minutes, final, or not yet accepted are left alone', function () {
