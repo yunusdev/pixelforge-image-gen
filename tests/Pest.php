@@ -1,6 +1,8 @@
 <?php
 
+use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /*
@@ -40,4 +42,42 @@ function pixelforgePricing(array $rates = []): array
             ],
         ],
     ];
+}
+
+/** A Pixelforge generation object, as POST/GET /v1/generations and webhooks return it. */
+function pixelforgeGeneration(array $overrides = []): array
+{
+    return array_merge([
+        'id' => 'gen_01HXYZ',
+        'object' => 'generation',
+        'status' => 'queued',
+        'prompt' => 'A lighthouse on a cliff at dawn',
+        'size' => '1024x1024',
+        'quality' => 'medium',
+        'reference_images' => [],
+        'metadata' => [],
+        'image_url' => null,
+        'image_url_expires_at' => null,
+        'usage' => null,
+        'rates' => [
+            'input_text_tokens' => '5.00',
+            'input_image_tokens' => '10.00',
+            'output_tokens' => '40.00',
+            'reasoning_tokens' => '12.50',
+        ],
+        'error' => null,
+        'created_at' => '2026-11-18T10:00:00Z',
+        'started_at' => null,
+        'completed_at' => null,
+    ], $overrides);
+}
+
+/** A Pixelforge error reply, shaped as its docs describe. */
+function pixelforgeError(string $code, int $status, ?int $retryAfter = null): PromiseInterface
+{
+    return Http::response(
+        ['error' => ['type' => 'error', 'code' => $code, 'message' => "Pixelforge says {$code}.", 'param' => null]],
+        $status,
+        $retryAfter === null ? [] : ['Retry-After' => (string) $retryAfter],
+    );
 }

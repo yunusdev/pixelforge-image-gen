@@ -18,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(PixelforgeClient::class, fn (): PixelforgeClient => new PixelforgeClient(
             (string) config('services.pixelforge.base_url'),
+            (string) config('services.pixelforge.api_key'),
         ));
     }
 
