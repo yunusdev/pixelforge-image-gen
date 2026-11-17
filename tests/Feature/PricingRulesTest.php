@@ -4,38 +4,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 
-function pricingBody(string $textRate = '5.00'): array
-{
-    return [
-        'object' => 'pricing',
-        'currency' => 'usd',
-        'unit' => 'per_1m_tokens',
-        'rates' => [
-            'input_text_tokens' => $textRate,
-            'input_image_tokens' => '10.00',
-            'output_tokens' => '40.00',
-            'reasoning_tokens' => '12.50',
-        ],
-        'tokens' => [
-            'characters_per_text_token' => 4,
-            'text_token_variance' => 0.15,
-            'per_reference_image' => 765,
-            'output' => [
-                'low' => ['1024x1024' => 280, '1536x1024' => 420, '1024x1536' => 420],
-                'medium' => ['1024x1024' => 1100, '1536x1024' => 1650, '1024x1536' => 1650],
-                'high' => ['1024x1024' => 4300, '1536x1024' => 6450, '1024x1536' => 6450],
-            ],
-            'reasoning' => [
-                'low' => ['min' => 0, 'max' => 500],
-                'medium' => ['min' => 200, 'max' => 2000],
-                'high' => ['min' => 1000, 'max' => 8000],
-            ],
-        ],
-    ];
-}
-
 test('the Create page gets the rates and token rules from Pixelforge, in nanodollars', function () {
-    Http::fake(['pixelforge.test/pricing' => Http::response(pricingBody('6.25'))]);
+    Http::fake(['pixelforge.test/pricing' => Http::response(pixelforgePricing(['input_text_tokens' => '6.25']))]);
 
     $this->actingAs(User::factory()->create())
         ->get(route('create'))
@@ -54,8 +24,8 @@ test('the Create page gets the rates and token rules from Pixelforge, in nanodol
 
 test('the pricing is cached briefly and fetched again once it expires', function () {
     Http::fake(['pixelforge.test/pricing' => Http::sequence()
-        ->push(pricingBody('5.00'))
-        ->push(pricingBody('7.00'))]);
+        ->push(pixelforgePricing(['input_text_tokens' => '5.00']))
+        ->push(pixelforgePricing(['input_text_tokens' => '7.00']))]);
     $user = User::factory()->create();
 
     $this->actingAs($user)->get(route('create'))
@@ -73,7 +43,7 @@ test('the pricing is cached briefly and fetched again once it expires', function
 
 test('when Pixelforge cannot be reached the last known pricing is used', function () {
     Http::fake(['pixelforge.test/pricing' => Http::sequence()
-        ->push(pricingBody('5.00'))
+        ->push(pixelforgePricing(['input_text_tokens' => '5.00']))
         ->push(['error' => ['code' => 'overloaded']], 503)]);
     $user = User::factory()->create();
 

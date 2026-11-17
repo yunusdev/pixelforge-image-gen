@@ -6,38 +6,7 @@ use App\Pricing\PricingRules;
 use App\Pricing\Rates;
 use App\Pricing\Usage;
 
-/** Pixelforge's GET /v1/pricing response, as published in its docs. */
-function pixelforgePricing(array $rates = []): array
-{
-    return [
-        'object' => 'pricing',
-        'currency' => 'usd',
-        'unit' => 'per_1m_tokens',
-        'rates' => array_merge([
-            'input_text_tokens' => '5.00',
-            'input_image_tokens' => '10.00',
-            'output_tokens' => '40.00',
-            'reasoning_tokens' => '12.50',
-        ], $rates),
-        'tokens' => [
-            'characters_per_text_token' => 4,
-            'text_token_variance' => 0.15,
-            'per_reference_image' => 765,
-            'output' => [
-                'low' => ['1024x1024' => 280, '1536x1024' => 420, '1024x1536' => 420],
-                'medium' => ['1024x1024' => 1100, '1536x1024' => 1650, '1024x1536' => 1650],
-                'high' => ['1024x1024' => 4300, '1536x1024' => 6450, '1024x1536' => 6450],
-            ],
-            'reasoning' => [
-                'low' => ['min' => 0, 'max' => 500],
-                'medium' => ['min' => 200, 'max' => 2000],
-                'high' => ['min' => 1000, 'max' => 8000],
-            ],
-        ],
-    ];
-}
-
-function rules(array $rates = []): PricingRules
+function pricingRules(array $rates = []): PricingRules
 {
     return PricingRules::fromPixelforge(pixelforgePricing($rates));
 }
@@ -45,7 +14,7 @@ function rules(array $rates = []): PricingRules
 test('exact cost: the docs worked example gives a maximum provider cost of $0.373875000 and a top charge of $0.467343750', function () {
     $estimate = Pricing::estimate(
         new GenerationSettings(str_repeat('a', 400), '1536x1024', 'high', 2),
-        rules(),
+        pricingRules(),
     );
 
     expect($estimate->providerCostHigh)->toBe(373_875_000)
@@ -55,7 +24,7 @@ test('exact cost: the docs worked example gives a maximum provider cost of $0.37
 test('the docs worked example gives a low end of $0.357781250 from the low text and thinking counts', function () {
     $estimate = Pricing::estimate(
         new GenerationSettings(str_repeat('a', 400), '1536x1024', 'high', 2),
-        rules(),
+        pricingRules(),
     );
 
     expect($estimate->providerCostLow)->toBe(286_225_000)
@@ -80,7 +49,7 @@ test('exact cost: the estimate low end rounds down and the high end rounds up', 
     // Rates with a third decimal make the markup leave fractions of a nanodollar.
     $estimate = Pricing::estimate(
         new GenerationSettings('abcd', '1024x1024', 'low', 1),
-        rules(['input_text_tokens' => '5.001', 'input_image_tokens' => '10.001']),
+        pricingRules(['input_text_tokens' => '5.001', 'input_image_tokens' => '10.001']),
     );
 
     expect($estimate->providerCostLow)->toBe(18_850_765)    // × 1.25 = 23,563,456.25
@@ -91,18 +60,18 @@ test('exact cost: the estimate low end rounds down and the high end rounds up', 
 
 test('text tokens count Unicode characters, not bytes', function () {
     // 8 emoji are 32 bytes but 8 characters: 2 text tokens, so 1 to 3 with ±15%.
-    $emoji = Pricing::estimate(new GenerationSettings(str_repeat('🎨', 8), '1024x1024', 'low', 0), rules());
+    $emoji = Pricing::estimate(new GenerationSettings(str_repeat('🎨', 8), '1024x1024', 'low', 0), pricingRules());
 
     expect([$emoji->prompt->tokensLow, $emoji->prompt->tokensHigh])->toBe([1, 3]);
 
     // 10 characters (12 bytes): 3 text tokens, so 2 to 4.
-    $accented = Pricing::estimate(new GenerationSettings('café crème', '1024x1024', 'low', 0), rules());
+    $accented = Pricing::estimate(new GenerationSettings('café crème', '1024x1024', 'low', 0), pricingRules());
 
     expect([$accented->prompt->tokensLow, $accented->prompt->tokensHigh])->toBe([2, 4]);
 });
 
 test('prompt text tokens round characters up to whole tokens, then spread ±15%', function (string $prompt, int $low, int $high) {
-    $estimate = Pricing::estimate(new GenerationSettings($prompt, '1024x1024', 'low', 0), rules());
+    $estimate = Pricing::estimate(new GenerationSettings($prompt, '1024x1024', 'low', 0), pricingRules());
 
     expect([$estimate->prompt->tokensLow, $estimate->prompt->tokensHigh])->toBe([$low, $high]);
 })->with([
@@ -113,7 +82,7 @@ test('prompt text tokens round characters up to whole tokens, then spread ±15%'
 ]);
 
 test('every size and quality pair prices its output and thinking from the pricing table', function (string $quality, string $size, int $outputTokens, int $high) {
-    $estimate = Pricing::estimate(new GenerationSettings('', $size, $quality, 0), rules());
+    $estimate = Pricing::estimate(new GenerationSettings('', $size, $quality, 0), pricingRules());
 
     expect($estimate->imageOutput->tokensHigh)->toBe($outputTokens)
         ->and($estimate->high)->toBe($high);
@@ -132,7 +101,7 @@ test('every size and quality pair prices its output and thinking from the pricin
 test('each reference image adds 765 image tokens, from none up to the maximum of 4', function (int $references, int $providerCostHigh) {
     $estimate = Pricing::estimate(
         new GenerationSettings(str_repeat('a', 400), '1536x1024', 'high', $references),
-        rules(),
+        pricingRules(),
     );
 
     expect($estimate->referenceImages->tokensHigh)->toBe($references * 765)
@@ -146,7 +115,7 @@ test('each reference image adds 765 image tokens, from none up to the maximum of
 ]);
 
 test('an unknown size or quality is refused', function () {
-    Pricing::estimate(new GenerationSettings('a', '512x512', 'low', 0), rules());
+    Pricing::estimate(new GenerationSettings('a', '512x512', 'low', 0), pricingRules());
 })->throws(InvalidArgumentException::class);
 
 test('exact cost: the provider cost is the real usage times the rates fixed on the generation', function () {
