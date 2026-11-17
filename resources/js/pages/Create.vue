@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import PromptBar from '@/components/PromptBar.vue';
+import type { PricingRules } from '@/lib/pricing';
+
+defineProps<{
+    /** Pixelforge's current rates and token rules; null if they couldn't be loaded. */
+    pricing: PricingRules | null;
+}>();
 </script>
 
 <template>
@@ -27,4 +34,5 @@ import { Head } from '@inertiajs/vue3';
             </p>
         </div>
     </main>
+    <PromptBar :pricing="pricing" />
 </template>

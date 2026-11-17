@@ -66,7 +66,14 @@ function ceilDiv(dividend: number, divisor: number): number {
 
 /** Pixelforge counts Unicode characters (code points), not UTF-16 units or bytes. */
 export function promptCharacters(prompt: string): number {
-    return [...prompt].length;
+    // Code points, like PHP's mb_strlen(): a string iterates by code point.
+    let characters = 0;
+
+    for (const _ of prompt) {
+        characters++;
+    }
+
+    return characters;
 }
 
 /** The charge: provider cost plus the 25% markup, rounded up to the nanodollar. */
