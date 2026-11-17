@@ -82,6 +82,12 @@ class Generation extends Model
         return $this->status === GenerationStatus::Succeeded ? (int) $this->actual_charge : 0;
     }
 
+    /** Pixelforge keeps images for 24 hours; after that the URL is dead and the feed shows a placeholder. */
+    public function imageExpired(): bool
+    {
+        return $this->image_url_expires_at !== null && $this->image_url_expires_at->lessThanOrEqualTo(now());
+    }
+
     public function rates(): ?Rates
     {
         return $this->rate_input_text_tokens === null ? null : new Rates(

@@ -32,7 +32,8 @@ class GenerationResource extends JsonResource
             'failure' => $this->status === GenerationStatus::Failed
                 ? FailureReason::for($this->error_code ?? 'internal_error')
                 : null,
-            'image_url' => $this->image_url,
+            'image_url' => $this->imageExpired() ? null : $this->image_url,
+            'image_expired' => $this->imageExpired(),
             'image_url_expires_at' => $this->image_url_expires_at?->toIso8601ZuluString(),
             'created_at' => $this->created_at->toIso8601ZuluString(),
             'started_at' => $this->started_at?->toIso8601ZuluString(),
