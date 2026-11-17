@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab E · Studio (proof sheet)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<!--
+  Layout pattern: "studio" (OpenArt-style). Icon rail, a fixed settings panel on the left with the
+  Generate button pinned at its foot, and a results workspace on the right where each prompt is a
+  row: header (prompt, settings, status, cost) + its image. Create and History share the workspace.
+  Look: frontend-design "Proof sheet" (same tokens as A): cool paper, navy ink, CMY only as signal,
+  registration marks. Signature carried over: the cost meter strip, now pinned above Generate.
+-->
+<style>
+  :root{--paper:#EEF1F4;--sheet:#FFF;--ink:#14213D;--ink-2:#5B6478;--rule:#D3D9E1;--cyan:#0096D6;--magenta:#C81D6B;--yellow:#E9B400;--key:#14213D;--ok:#1F8A5B;
+    --display:"Archivo",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{background:var(--paper);color:var(--ink);font:14px/1.5 var(--display)}
+  :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .app{display:grid;grid-template-columns:64px 380px 1fr;height:100vh}
+  /* rail */
+  .rail{background:var(--ink);color:#fff;display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:6px}
+  .reg{width:22px;height:22px;border:1.5px solid #fff;border-radius:50%;position:relative;margin-bottom:18px}
+  .reg::before,.reg::after{content:"";position:absolute;background:#fff}
+  .reg::before{left:50%;top:-5px;bottom:-5px;width:1.5px;transform:translateX(-50%)}
+  .reg::after{top:50%;left:-5px;right:-5px;height:1.5px;transform:translateY(-50%)}
+  .rail a{width:48px;padding:8px 0;border-radius:8px;color:#AEB7C7;text-decoration:none;font-size:10px;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .rail a svg{width:20px;height:20px}
+  .rail a[aria-current]{background:rgba(255,255,255,.12);color:#fff}
+  .rail .cmy{margin-top:auto;display:flex;flex-direction:column;gap:3px}.rail .cmy i{width:18px;height:4px;border-radius:2px}
+  /* settings panel */
+  .settings{background:var(--sheet);border-right:1px solid var(--rule);display:flex;flex-direction:column;min-height:0}
+  .settings .scroll{overflow:auto;padding:22px 22px 10px;flex:1}
+  h1{font-variation-settings:"wdth" 125;font-weight:800;font-size:22px;letter-spacing:-.01em;margin:0 0 18px}
+  .lbl{font-size:12px;font-weight:700;margin:18px 0 8px;display:flex;justify-content:space-between}
+  .lbl span{font-weight:400;color:var(--ink-2)}
+  textarea{width:100%;font:inherit;border:1px solid var(--rule);border-radius:8px;padding:10px 12px;min-height:130px;resize:vertical;color:var(--ink)}
+  .sizes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .size{border:1px solid var(--rule);background:#fff;border-radius:8px;padding:12px 6px 8px;cursor:pointer;font:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--ink-2);font-size:12px}
+  .size .shape{border:1.5px solid currentColor;border-radius:2px}
+  .size[aria-pressed=true]{border-color:var(--ink);color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+  .seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+  .seg button{font:inherit;border:0;border-right:1px solid var(--rule);background:#fff;padding:9px 0;cursor:pointer;color:var(--ink-2)}
+  .seg button:last-child{border-right:0}
+  .seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+  .refs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .ref{aspect-ratio:1;border:1px dashed var(--rule);border-radius:8px;display:grid;place-items:center;font-size:11px;color:var(--ink-2);background:#F7F9FB;position:relative;overflow:hidden;cursor:pointer}
+  .ref.filled{border-style:solid;background:repeating-linear-gradient(135deg,#E8EEF4 0 6px,#F4F7FA 6px 12px)}
+  .ref .rm{position:absolute;top:3px;right:3px;border:0;background:var(--ink);color:#fff;border-radius:4px;font-size:10px;cursor:pointer;padding:1px 5px}
+  .refurl{width:100%;font:12px var(--mono);border:1px solid var(--rule);border-radius:6px;padding:7px 8px;margin-top:8px}
+  .hint{font-size:12px;color:var(--ink-2);margin-top:6px}
+  .money{font-family:var(--mono);border-bottom:1px dotted var(--ink-2);cursor:help}
+  /* SIGNATURE: pinned meter + generate */
+  .foot{border-top:1px solid var(--rule);padding:14px 22px 18px;background:#FBFCFD}
+  .range{display:flex;justify-content:space-between;align-items:baseline}
+  .range b{font-family:var(--mono);font-size:22px}
+  .range small{color:var(--ink-2);font-size:12px}
+  .strip{display:flex;height:14px;border:1.5px solid var(--ink);border-radius:2px;overflow:hidden;margin:10px 0 4px;background:#fff}
+  .strip span{height:100%;transition:flex-basis .3s}
+  .strip .var{background:repeating-linear-gradient(135deg,currentColor 0 3px,transparent 3px 7px);opacity:.8}
+  @media (prefers-reduced-motion:reduce){.strip span{transition:none}}
+  .keys{display:flex;gap:12px;font-size:11px;color:var(--ink-2);flex-wrap:wrap}
+  .keys i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
+  .btn{font:inherit;font-weight:700;border:0;border-radius:8px;padding:13px 18px;cursor:pointer;background:var(--ink);color:#fff;width:100%;margin-top:12px}
+  .btn[disabled]{background:#B9C1CD;cursor:not-allowed}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--rule);width:auto;margin:0;padding:7px 12px;font-weight:600}
+  .short{margin-top:10px;font-size:12px;background:#FBEAF1;color:#8A1248;padding:8px 10px;border-radius:6px}
+  .lab{font-size:11px;color:var(--ink-2);display:flex;gap:6px;align-items:center;margin-top:10px}
+  /* workspace */
+  .work{overflow:auto;min-height:0}
+  .wtop{position:sticky;top:0;z-index:5;background:rgba(238,241,244,.92);backdrop-filter:blur(6px);display:flex;align-items:center;gap:12px;padding:14px 28px;border-bottom:1px solid var(--rule)}
+  .tabs{display:flex;gap:4px}
+  .tabs button{font:inherit;border:0;background:none;padding:6px 10px;border-radius:6px;color:var(--ink-2);cursor:pointer;font-weight:600}
+  .tabs button[aria-pressed=true]{background:var(--sheet);color:var(--ink)}
+  .wallet{margin-left:auto;font-size:12px;color:var(--ink-2);display:flex;gap:14px;align-items:center}
+  .wallet b{font-family:var(--mono);color:var(--ink);font-size:14px}
+  .rows{padding:20px 28px 60px;display:flex;flex-direction:column;gap:16px}
+  .job{background:var(--sheet);border:1px solid var(--rule);border-radius:12px;display:grid;grid-template-columns:minmax(220px,340px) 1fr;overflow:hidden}
+  .plate{background:#E3E8EE;position:relative;display:grid;place-items:center;min-height:200px;color:var(--ink-2);font-size:13px;text-align:center}
+  .plate img{width:100%;height:100%;object-fit:cover;display:block}
+  .crop{position:absolute;width:12px;height:12px;border-color:var(--ink-2);opacity:.5}
+  .crop.tl{top:8px;left:8px;border-top:1px solid;border-left:1px solid}.crop.br{bottom:8px;right:8px;border-bottom:1px solid;border-right:1px solid}
+  .spin{width:40px;height:40px;border-radius:50%;border:2px solid var(--yellow);border-top-color:transparent;animation:s 1.1s linear infinite;margin:0 auto 8px}
+  @keyframes s{to{transform:rotate(360deg)}}@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+  .info{padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+  .head{display:flex;gap:10px;align-items:center}
+  .status{display:inline-flex;gap:6px;align-items:center;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;background:#F1F3F6}
+  .status i{width:8px;height:8px;border-radius:50%}
+  .when{font-size:12px;color:var(--ink-2);margin-left:auto}
+  .prompt{font-size:16px;font-weight:600;line-height:1.35;margin:0}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chips span{font-size:11px;font-family:var(--mono);background:#F1F3F6;border-radius:4px;padding:2px 7px;color:var(--ink-2)}
+  .costline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;border-top:1px solid var(--rule);padding-top:10px;margin-top:auto}
+  .mini{position:relative;height:10px;border:1px solid var(--ink);border-radius:2px;background:repeating-linear-gradient(90deg,#fff 0 4px,#F1F3F6 4px 8px)}
+  .mini .hit{position:absolute;top:-6px;width:14px;height:20px;transform:translateX(-50%)}
+  .mini .hit::before,.mini .hit::after{content:"";position:absolute;background:var(--magenta)}
+  .mini .hit::before{left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%)}
+  .mini .hit::after{top:50%;left:0;right:0;height:2px;transform:translateY(-50%)}
+  .ends{display:flex;justify-content:space-between;font:11px var(--mono);color:var(--ink-2);margin-top:4px}
+  .paid{text-align:right;font-family:var(--mono);font-size:18px;font-weight:600}
+  .paid small{display:block;font-family:var(--display);font-size:11px;font-weight:400;color:var(--ink-2)}
+  .err{background:#FBEAF1;color:#8A1248;border-radius:8px;padding:10px 12px;font-size:13px}
+  .err b{display:block}
+  .badge{font-size:10px;font-weight:800;padding:2px 6px;border-radius:99px;background:#FBEAF1;color:#8A1248;margin-left:6px;vertical-align:middle}
+  .actions{display:flex;gap:8px}
+  @media (max-width:1000px){.app{grid-template-columns:1fr;height:auto}.rail{flex-direction:row;padding:8px 12px;justify-content:flex-start}.rail .cmy,.reg{display:none}.settings{border-right:0}.job{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Main">
+    <span class="reg" aria-hidden="true"></span>
+    <a href="#" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Create</a>
+    <a href="../a-proof-sheet/#credits"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>Credits</a>
+    <a href="../a-proof-sheet/#admin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Report</a>
+    <div class="cmy" aria-hidden="true"><i style="background:var(--cyan)"></i><i style="background:var(--magenta)"></i><i style="background:var(--yellow)"></i><i style="background:#fff"></i></div>
+  </nav>
+  <section class="settings" id="settings"></section>
+  <section class="work"><div class="wtop"><div class="tabs" id="tabs"></div>
+    <div class="wallet"><span>Balance <b title="${''}" id="bal"></b></span><span>Available <b id="av"></b></span></div></div>
+    <div class="rows" id="rows"></div></section>
+</div>
+<script src="../mock-data.js"></script>
+<script>
+const L=window.LAB;
+const C={prompt:"var(--cyan)",refs:"var(--yellow)",output:"var(--key)",thinking:"var(--magenta)"};
+const m=(n,d)=>`<span class="money" title="${L.exact(n)}">${L.cents(n,d)}</span>`;
+const ST={waiting:["Waiting for a slot","var(--ink-2)"],queued:["Queued","var(--cyan)"],processing:["Processing","var(--yellow)"],succeeded:["Done","var(--ok)"],failed:["Failed · free","var(--magenta)"]};
+const S={prompt:"A lighthouse on a cliff at dawn, oil painting",size:"1536x1024",quality:"high",refs:["https://example.com/style.png"],low:false,tab:"all"};
+document.getElementById("bal").textContent=L.cents(L.balance);document.getElementById("bal").title=L.exact(L.balance);
+document.getElementById("av").textContent=L.cents(L.available);document.getElementById("av").title=L.exact(L.available)+` (balance minus ${L.exact(L.held)} set aside for running images)`;
+
+function settings(){
+  const e=L.estimate(S.prompt,S.size,S.quality,S.refs.filter(Boolean).length);
+  const avail=S.low?120_000_000:L.available, ok=avail>=e.highNano&&S.prompt.trim();
+  const total=e.breakdown.reduce((s,b)=>s+b.high,0);
+  const keys=[["prompt",0],["refs",1],["output",2],["thinking",3]];
+  const strip=keys.map(([k,i])=>{const b=e.breakdown[i];return (b.low?`<span style="flex-basis:${b.low/total*100}%;background:${C[k]}"></span>`:"")+(b.high-b.low?`<span class="var" style="flex-basis:${(b.high-b.low)/total*100}%;color:${C[k]}"></span>`:"")}).join("");
+  const shape=(v)=>{const [w,h]=v.split("x").map(Number);return `<span class="shape" style="width:${w/64}px;height:${h/64}px"></span>`};
+  document.getElementById("settings").innerHTML=`
+   <div class="scroll"><h1>Create</h1>
+    <div class="lbl"><label for="p">Prompt</label><span>${[...S.prompt].length}/4,000</span></div>
+    <textarea id="p" maxlength="4000">${S.prompt}</textarea>
+    <div class="lbl">Size</div><div class="sizes">${[["1024x1024","Square"],["1536x1024","Landscape"],["1024x1536","Portrait"]].map(([v,t])=>`<button class="size" data-size="${v}" aria-pressed="${S.size===v}">${shape(v)}${t}</button>`).join("")}</div>
+    <div class="lbl">Quality <span>affects detail and thinking time</span></div><div class="seg">${["low","medium","high"].map(q=>`<button data-q="${q}" aria-pressed="${S.quality===q}">${q[0].toUpperCase()+q.slice(1)}</button>`).join("")}</div>
+    <div class="lbl">Reference images <span>optional · up to 4</span></div>
+    <div class="refs">${[0,1,2,3].map(i=>S.refs[i]!==undefined?`<div class="ref filled" title="${S.refs[i]}">ref ${i+1}<button class="rm" data-rm="${i}" aria-label="Remove reference ${i+1}">×</button></div>`:i===S.refs.length?`<button class="ref" id="add" aria-label="Add reference URL">+ URL</button>`:`<div class="ref" aria-hidden="true"></div>`).join("")}</div>
+    ${S.refs.map((r,i)=>`<input class="refurl" data-ref="${i}" value="${r}" placeholder="https://… (reference ${i+1})">`).join("")}
+    <div class="hint">Each reference adds ${m(Math.ceil(765*10000*1.25))}. Pixelforge bills it even though it doesn't download it.</div>
+   </div>
+   <div class="foot" aria-live="polite">
+    <div class="range"><small>You'll pay</small><b>${L.cents(e.lowNano,"down")} – ${L.cents(e.highNano,"up")}</b></div>
+    <div class="strip" role="img" aria-label="What makes up the price">${strip}</div>
+    <div class="keys">${keys.map(([k,i])=>`<span title="${e.breakdown[i].tokens} tokens · ${e.breakdown[i].note}"><i style="background:${C[k]}"></i>${e.breakdown[i].label}</span>`).join("")}<span>▨ = depends on result</span></div>
+    ${ok?"":`<div class="short">Not enough credits: ${L.cents(avail)} available, this could cost up to ${L.cents(e.highNano,"up")}. <a href="../a-proof-sheet/#credits" style="color:inherit">Buy credits</a></div>`}
+    <button class="btn" ${ok?"":"disabled"}>Generate · never more than ${L.cents(e.highNano,"up")}</button>
+    <label class="lab"><input type="checkbox" id="low" ${S.low?"checked":""}> Lab: simulate low balance</label>
+   </div>`;
+  const p=document.getElementById("p");
+  p.oninput=()=>{S.prompt=p.value;const c=p.selectionStart;settings();const n=document.getElementById("p");n.focus();n.setSelectionRange(c,c)};
+  document.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{S.size=b.dataset.size;settings()});
+  document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{S.quality=b.dataset.q;settings()});
+  document.querySelectorAll("[data-ref]").forEach(i=>i.onchange=()=>{S.refs[+i.dataset.ref]=i.value;settings()});
+  document.querySelectorAll("[data-rm]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();S.refs.splice(+b.dataset.rm,1);settings()});
+  const a=document.getElementById("add");if(a)a.onclick=()=>{S.refs.push("");settings();const ins=document.querySelectorAll(".refurl");ins[ins.length-1].focus()};
+  document.getElementById("low").onchange=ev=>{S.low=ev.target.checked;settings()};
+}
+
+function rows(){
+  const tabs=[["all","All"],["running","Running"],["succeeded","Done"],["failed","Failed"]];
+  document.getElementById("tabs").innerHTML=tabs.map(([k,t])=>`<button data-t="${k}" aria-pressed="${S.tab===k}">${t}${k==="running"?` (${L.inProgress.length})`:""}</button>`).join("");
+  document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;rows()});
+  const list=L.generations.filter(g=>S.tab==="all"||(S.tab==="running"?["waiting","queued","processing"].includes(g.status):g.status===S.tab));
+  document.getElementById("rows").innerHTML=list.map(g=>{
+    const [t,c]=ST[g.status],pos=L.rangePos(g);
+    const plate=g.status==="succeeded"&&g.image?`<img src="${g.image}" alt="${g.prompt}">`:g.status==="succeeded"?`<div><b>Image expired</b><br>Pixelforge keeps images for 24 hours.</div>`:g.status==="failed"?`<div>No image</div>`:`<div><div class="spin" aria-hidden="true"></div>${g.status==="waiting"?"Pixelforge is busy.<br>Retrying for up to 10 minutes.":g.status==="queued"?"In Pixelforge's queue":"Drawing… usually 5–30 s"}</div>`;
+    const cost=g.status==="succeeded"
+      ?`<div><div class="mini" title="Where the charge landed"><span class="hit" style="left:${Math.min(100,pos*100)}%"></span></div><div class="ends"><span>${L.cents(g.estLow,"down")}</span><span>max ${L.cents(g.estHigh,"up")}</span></div></div><div class="paid">${m(g.actual)}${g.capped?'<span class="badge" title="Pixelforge raised prices after you submitted. You paid the max you were shown.">CAPPED</span>':""}<small>charged</small></div>`
+      :g.status==="failed"?`<div class="ends"><span>estimate ${L.cents(g.estLow,"down")}–${L.cents(g.estHigh,"up")}</span></div><div class="paid">$0.00<small>not charged</small></div>`
+      :`<div class="ends"><span>estimate ${L.cents(g.estLow,"down")}–${L.cents(g.estHigh,"up")}</span></div><div class="paid" style="color:var(--ink-2)">≤ ${m(g.estHigh,"up")}<small>set aside</small></div>`;
+    return `<article class="job"><div class="plate"><span class="crop tl"></span><span class="crop br"></span>${plate}</div>
+      <div class="info"><div class="head"><span class="status"><i style="background:${c}"></i>${t}</span><span class="when">${new Date(g.createdAt).toLocaleString()}</span></div>
+      <p class="prompt">${g.prompt}</p>
+      <div class="chips"><span>${g.size}</span><span>${g.quality}</span>${g.refs.length?`<span>${g.refs.length} ref</span>`:""}</div>
+      ${g.status==="failed"?`<div class="err"><b>${L.ERRORS[g.error.code].title}</b>${L.ERRORS[g.error.code].body}</div>`:""}
+      <div class="actions">${g.status==="failed"?'<button class="btn ghost">Try again</button>':""}<button class="btn ghost">Reuse settings</button></div>
+      <div class="costline">${cost}</div></div></article>`}).join("");
+}
+settings();rows();
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-# UI design lab: throwaway versions, not part of the app
-lab/
 # Local preview config for the lab (machine-specific paths)
 .claude/launch.json
+# Design-checker tool config (local only)
+.impeccable/

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab C · Telemetry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  Direction: "Telemetry" (industrial-brutalist-ui, Tactical Telemetry archetype). Dark CRT substrate,
+  white phosphor mono, hazard red as the only accent, terminal green reserved for ONE thing:
+  "matches Pixelforge" in the admin report. Zero radius, 1px grid gaps, scanlines.
+  Copy stays plain English even though the styling is technical.
+-->
+<style>
+  :root{--bg:#0E0E0E;--panel:#151515;--fg:#EAEAEA;--dim:#8A8A8A;--line:#2A2A2A;--red:#FF2A2A;--green:#4AF626;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;--black:"Archivo Black",Impact,sans-serif}
+  *{box-sizing:border-box;border-radius:0}html,body{margin:0}
+  body{background:var(--bg);color:var(--fg);font:13px/1.45 var(--mono);letter-spacing:.02em}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.18) 2px 4px)}
+  :focus-visible{outline:2px solid var(--red);outline-offset:1px}
+  a{color:inherit}
+  .shell{display:grid;grid-template-rows:auto 1fr;min-height:100vh}
+  .top{display:grid;grid-template-columns:auto 1fr auto;gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+  .top>*{background:var(--bg);padding:12px 18px;display:flex;align-items:center;gap:18px}
+  .mark{font-family:var(--black);font-size:18px;letter-spacing:-.02em;text-transform:uppercase}
+  .mark sup{font-family:var(--mono);font-size:9px;color:var(--red)}
+  nav a{text-decoration:none;text-transform:uppercase;letter-spacing:.1em;font-size:11px;color:var(--dim);padding:4px 0}
+  nav a[aria-current]{color:var(--fg);box-shadow:inset 0 -2px 0 var(--red)}
+  .readout{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
+  .readout b{color:var(--fg);font-weight:600;font-size:13px;letter-spacing:.02em}
+  main{padding:0 0 80px}
+  .head{display:grid;grid-template-columns:1fr auto;align-items:end;border-bottom:1px solid var(--line);padding:36px 24px 18px}
+  h1{font-family:var(--black);text-transform:uppercase;font-size:clamp(3rem,8vw,7.5rem);line-height:.86;letter-spacing:-.045em;margin:0}
+  .tag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);text-align:right}
+  .money{border-bottom:1px dotted #555;cursor:help}
+  .grid{display:grid;gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+  .cell{background:var(--bg);padding:20px 24px}
+  .k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+  .btn{font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;background:var(--fg);color:#0E0E0E;border:0;padding:14px 20px;cursor:pointer}
+  .btn:hover{background:#fff}.btn[disabled]{background:#333;color:#777;cursor:not-allowed}
+  .btn.line{background:transparent;color:var(--fg);border:1px solid var(--fg)}
+  .btn.red{background:var(--red);color:#0E0E0E}
+  /* generate */
+  .gen{grid-template-columns:1.2fr .8fr}
+  textarea{width:100%;background:transparent;border:0;border-left:2px solid var(--red);color:var(--fg);font:500 18px/1.5 var(--mono);padding:4px 0 4px 14px;min-height:150px;resize:vertical}
+  textarea:focus{outline:none;background:#121212}
+  .opts{grid-template-columns:1fr 1fr;margin-top:20px}
+  .opt{display:flex;flex-wrap:wrap;gap:1px;background:var(--line);border:1px solid var(--line);width:max-content}
+  .opt button{font:500 12px var(--mono);text-transform:uppercase;letter-spacing:.08em;background:var(--bg);color:var(--dim);border:0;padding:10px 12px;cursor:pointer}
+  .opt button[aria-pressed=true]{background:var(--fg);color:#0E0E0E}
+  .refs input{width:100%;background:transparent;border:0;border-bottom:1px solid var(--line);color:var(--fg);font:12px var(--mono);padding:8px 0}
+  .refrow{display:flex;gap:8px}
+  .x,.add{background:none;border:0;color:var(--dim);cursor:pointer;font:12px var(--mono);text-transform:uppercase;letter-spacing:.1em}
+  .add{color:var(--fg);padding:10px 0}
+  /* SIGNATURE: price gauge */
+  .price{font-family:var(--black);font-size:clamp(2.5rem,5vw,4.4rem);line-height:.9;letter-spacing:-.04em}
+  .price small{display:block;font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--dim);margin-top:10px;text-transform:uppercase}
+  .gauge{margin:26px 0 6px;font-size:11px}
+  .bar{position:relative;height:34px;border:1px solid var(--fg);background:repeating-linear-gradient(90deg,#1c1c1c 0 1px,transparent 1px 10px)}
+  .bar .fix{position:absolute;top:0;bottom:0;left:0;background:var(--fg)}
+  .bar .var{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,var(--red) 0 2px,transparent 2px 6px)}
+  .scale{display:flex;justify-content:space-between;color:var(--dim);margin-top:6px;text-transform:uppercase;letter-spacing:.08em}
+  dl{display:grid;grid-template-columns:1fr auto;margin:22px 0 0;border-top:1px solid var(--line)}
+  dt,dd{margin:0;padding:9px 0;border-bottom:1px solid var(--line)}
+  dt small{display:block;color:var(--dim);font-size:11px}
+  dd{text-align:right;white-space:nowrap}
+  .warn{border:1px solid var(--red);color:var(--red);padding:12px;margin-top:18px;text-transform:uppercase;letter-spacing:.06em;font-size:12px}
+  .okline{border:1px solid var(--line);padding:12px;margin-top:18px;color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+  .lab{color:var(--dim);font-size:11px;margin-top:12px;display:flex;gap:6px;text-transform:uppercase;letter-spacing:.08em}
+  /* history log */
+  .log{display:grid;gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+  .entry{display:grid;grid-template-columns:140px 170px 1fr 220px;gap:1px;background:var(--line)}
+  .entry>*{background:var(--bg);padding:16px 18px}
+  .entry .img{padding:0;display:grid;place-items:center;aspect-ratio:1;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.1em;text-align:center}
+  .entry .img img{width:100%;height:100%;object-fit:cover;filter:grayscale(.35) contrast(1.1)}
+  .halftone{background:radial-gradient(#3a3a3a 1px,transparent 1.2px) 0 0/6px 6px}
+  .st{font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:11px;display:flex;gap:8px;align-items:center}
+  .st i{width:8px;height:8px;background:currentColor;display:inline-block}
+  .blink{animation:bl 1s steps(2) infinite}@keyframes bl{50%{opacity:.15}}
+  @media (prefers-reduced-motion:reduce){.blink{animation:none}}
+  .pr{font-size:14px;line-height:1.4;margin:0 0 6px}
+  .dim{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+  .fail{color:var(--red);margin-top:10px;font-size:12px}
+  .fail b{display:block;text-transform:uppercase;letter-spacing:.08em}
+  .cost{text-align:right}
+  .cost .v{font-size:20px;font-weight:600}
+  .tick{position:relative;height:8px;border:1px solid var(--dim);margin:10px 0 6px}
+  .tick i{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--fg)}
+  .capped{color:var(--red)}
+  /* credits */
+  .big{font-family:var(--black);font-size:clamp(3rem,7vw,6rem);letter-spacing:-.045em;line-height:.9}
+  .packs{grid-template-columns:repeat(3,1fr)}
+  .pack{background:var(--bg);border:0;color:var(--fg);text-align:left;padding:24px;cursor:pointer;font:inherit}
+  .pack:hover{background:var(--fg);color:#0E0E0E}
+  .pack b{font-family:var(--black);font-size:44px;letter-spacing:-.04em;display:block;line-height:1}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{font-weight:500;text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:var(--dim);text-align:left;padding:10px 14px;border-bottom:1px solid var(--fg)}
+  td{padding:9px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .n{text-align:right;font-feature-settings:"tnum"}
+  .ok{color:var(--green)}
+  .bad{color:var(--red)}
+  .sec{padding:28px 24px 8px;font-family:var(--black);text-transform:uppercase;font-size:28px;letter-spacing:-.03em;border-bottom:1px solid var(--line)}
+  .scroll{overflow:auto}
+  @media (max-width:900px){.gen,.opts,.packs{grid-template-columns:1fr}.entry{grid-template-columns:90px 1fr}.entry>:nth-child(2){display:none}.entry .cost{grid-column:1/-1;text-align:left}.top{grid-template-columns:1fr}.head{grid-template-columns:1fr}.tag{text-align:left}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top"><span class="mark">Pixelforge<sup>®</sup></span><nav id="nav" style="display:flex;gap:22px"></nav><span class="readout" id="ro"></span></div>
+  <main id="main"></main>
+</div>
+<script src="../mock-data.js"></script>
+<script>
+const L=window.LAB;
+const m=(n,d)=>`<span class="money" title="${L.exact(n)}">${L.cents(n,d)}</span>`;
+const ST={waiting:["Waiting for a slot","var(--dim)",true],queued:["Queued","var(--fg)",true],processing:["Processing","var(--fg)",true],succeeded:["Done","var(--fg)",false],failed:["Failed · free","var(--red)",false]};
+const S={prompt:"A lighthouse on a cliff at dawn, oil painting",size:"1536x1024",quality:"high",refs:["https://example.com/style.png"],low:false};
+const head=(t,tag)=>`<div class="head"><h1>${t}</h1><div class="tag">${tag}</div></div>`;
+
+function chrome(p){
+  document.getElementById("nav").innerHTML=[["generate","Generate"],["history","History"],["credits","Credits"],["admin","Report"]].map(([k,t])=>`<a href="#${k}" ${k===p?'aria-current="page"':""}>${t}</a>`).join("");
+  document.getElementById("ro").innerHTML=`Available <b title="${L.exact(L.available)}">${L.cents(L.available)}</b> &nbsp;/&nbsp; Running <b>${L.inProgress.length}</b>`;
+}
+
+function generate(){
+  const e=L.estimate(S.prompt,S.size,S.quality,S.refs.filter(Boolean).length);
+  const avail=S.low?120_000_000:L.available, ok=avail>=e.highNano&&S.prompt.trim();
+  const up=n=>Math.ceil(n*1.25),dn=n=>Math.floor(n*1.25);
+  const fixedPct=e.providerLow/e.providerHigh*100;
+  return head("Generate",`Price shown before you run<br>Failed images are free`)+
+  `<div class="grid gen">
+    <form class="cell" onsubmit="event.preventDefault()">
+      <div class="k">Prompt · ${[...S.prompt].length}/4000</div>
+      <textarea id="p" maxlength="4000">${S.prompt}</textarea>
+      <div class="grid opts" style="background:none">
+        <div><div class="k">Size</div><div class="opt">${[["1024x1024","Square"],["1536x1024","Wide"],["1024x1536","Tall"]].map(([v,t])=>`<button type="button" data-size="${v}" aria-pressed="${S.size===v}">${t} ${v}</button>`).join("")}</div></div>
+        <div><div class="k">Quality</div><div class="opt">${["low","medium","high"].map(q=>`<button type="button" data-q="${q}" aria-pressed="${S.quality===q}">${q}</button>`).join("")}</div></div>
+      </div>
+      <div class="refs" style="margin-top:22px"><div class="k">Reference images · optional · max 4</div>
+        ${S.refs.map((r,i)=>`<div class="refrow"><input type="url" data-ref="${i}" value="${r}" placeholder="https://"><button type="button" class="x" data-rm="${i}">[ remove ]</button></div>`).join("")}
+        ${S.refs.length<4?'<button type="button" class="add" id="add">[ + add url ]</button>':""}</div>
+      <div style="margin-top:26px;display:flex;gap:14px;align-items:center"><button class="btn ${ok?"":""}" ${ok?"":"disabled"}>Generate &gt;&gt;&gt;</button><span class="dim">Max ${L.cents(e.highNano,"up")}</span></div>
+    </form>
+    <aside class="cell" aria-live="polite">
+      <div class="k">You will pay</div>
+      <div class="price">${L.cents(e.lowNano,"down")}–${L.cents(e.highNano,"up")}<small>Never more than ${m(e.highNano,"up")}</small></div>
+      <div class="gauge"><div class="bar" role="img" aria-label="Fixed part and variable part of the price"><span class="fix" style="width:${fixedPct}%"></span><span class="var" style="left:${fixedPct}%;right:0"></span></div>
+        <div class="scale"><span>$0</span><span>■ known now</span><span style="color:var(--red)">▨ depends on result</span><span>max</span></div></div>
+      <dl>${e.breakdown.map(b=>`<dt>${b.label}<small>${b.tokens} tokens · ${b.note}</small></dt><dd>${b.low===b.high?L.cents(up(b.low)):L.cents(dn(b.low),"down")+"–"+L.cents(up(b.high),"up")}</dd>`).join("")}</dl>
+      ${ok?`<div class="okline">${L.cents(avail)} available. Charged only if the image succeeds.</div>`:`<div class="warn">Not enough credits · ${L.cents(avail)} available · need up to ${L.cents(e.highNano,"up")} · <a href="#credits">buy credits</a></div>`}
+      <label class="lab"><input type="checkbox" id="low" ${S.low?"checked":""}> Lab: simulate low balance</label>
+    </aside>
+  </div>`;
+}
+
+function history(){
+  return head("History",`Newest first · auto-refresh while running<br>Page 1 / 1`)+`<div class="log">${L.generations.map(g=>{
+    const [t,c,live]=ST[g.status];
+    const img=g.status==="succeeded"&&g.image?`<img src="${g.image}" alt="">`:`<span class="halftone" style="width:100%;height:100%;display:grid;place-items:center">${g.status==="succeeded"?"Image expired<br>(24h)":g.status==="failed"?"No image":"···"}</span>`;
+    const note=g.status==="waiting"?`Pixelforge busy · retry ${g.attempts} · keeps trying up to 10 min`:g.status==="queued"?"Accepted, waiting to start":g.status==="processing"?"Drawing · usually 5–30 s":"";
+    const fail=g.status==="failed"?`<div class="fail"><b>${L.ERRORS[g.error.code].title}</b>${L.ERRORS[g.error.code].body}</div><button class="btn line" style="margin-top:10px">Try again</button>`:"";
+    const pos=L.rangePos(g);
+    const cost=g.status==="succeeded"?`<div class="k">Charged</div><div class="v">${m(g.actual)}</div><div class="tick" title="Where it landed in the estimate"><i style="left:${Math.min(100,pos*100)}%"></i></div><div class="dim">est ${L.cents(g.estLow,"down")}–${L.cents(g.estHigh,"up")}${g.capped?' · <span class="capped" title="Pixelforge raised prices after you submitted; you paid the max you were shown">capped</span>':""}</div>`
+      :g.status==="failed"?`<div class="k">Charged</div><div class="v">$0.00</div><div class="dim">est ${L.cents(g.estLow,"down")}–${L.cents(g.estHigh,"up")}</div>`
+      :`<div class="k">Up to</div><div class="v" style="color:var(--dim)">${m(g.estHigh,"up")}</div><div class="dim">set aside until it finishes</div>`;
+    return `<div class="entry"><div class="img">${img}</div>
+      <div><div class="st" style="color:${c}"><i class="${live?"blink":""}"></i>${t}</div><div class="dim" style="margin-top:8px">${new Date(g.createdAt).toLocaleString()}</div></div>
+      <div><p class="pr">${g.prompt}</p><div class="dim">${g.size} · ${g.quality}${g.refs.length?` · ${g.refs.length} ref`:""}</div>${note?`<div class="dim" style="margin-top:6px;color:var(--fg)">${note}</div>`:""}${fail}</div>
+      <div class="cost">${cost}</div></div>`}).join("")}</div>`;
+}
+
+function credits(){
+  return head("Credits",`US dollars · charged only on success`)+
+  `<div class="grid" style="grid-template-columns:1.3fr 1fr">
+    <div class="cell"><div class="k">Available now</div><div class="big">${m(L.available)}</div>
+      <dl><dt>Balance</dt><dd>${m(L.balance)}</dd><dt>Set aside for ${L.inProgress.length} running<small>their max price, released when they finish</small></dt><dd>−${m(L.held)}</dd></dl></div>
+    <div class="cell"><div class="k">How it works</div><p>Starting balance: $5.00 on sign-up.<br>Each image is charged its exact price when it succeeds.<br>Failed images cost nothing.</p></div>
+  </div>
+  <div class="grid packs">${L.packs.map(p=>`<button class="pack"><span class="k">Add credits</span><b>$${p}</b><span class="dim">Demo · no payment</span></button>`).join("")}</div>
+  <div class="sec">Ledger</div><div class="scroll"><table><thead><tr><th>When</th><th>What</th><th class="n">Amount</th></tr></thead><tbody>
+  ${L.ledger.map(e=>`<tr><td>${new Date(e.at).toLocaleString()}</td><td>${e.reason}${e.gen?` <span class="dim">· ${L.generations.find(g=>g.id===e.gen).prompt.slice(0,38)}</span>`:""}</td><td class="n" title="${L.exact(e.amount)}">${e.amount>0?"+":"−"}${L.cents(Math.abs(e.amount))}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+function admin(){
+  const T=L.days.reduce((a,d)=>({c:a.c+d.charged,p:a.p+d.provider,g:a.g+d.gens}),{c:0,p:0,g:0});
+  const okN=L.days.filter(d=>d.provider===d.pixelforge).length;
+  return head("Report",`UTC days · by completion time<br>${L.days.at(-1).date} → ${L.days[0].date} · max 92 days`)+
+  `<div class="grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="cell"><div class="k">Charged</div><div class="big" style="font-size:42px">${L.cents(T.c)}</div></div>
+    <div class="cell"><div class="k">Pixelforge cost</div><div class="big" style="font-size:42px">${L.cents(T.p)}</div></div>
+    <div class="cell"><div class="k">Profit</div><div class="big" style="font-size:42px">${L.cents(T.c-T.p)}</div></div>
+    <div class="cell"><div class="k">Matches Pixelforge</div><div class="big" style="font-size:42px"><span class="${okN===L.days.length?"ok":"bad"}">${okN}/${L.days.length}</span></div></div>
+  </div>
+  <div class="sec">By day</div><div class="scroll"><table><thead><tr><th>Day (UTC)</th><th class="n">Imgs</th><th class="n">Charged</th><th class="n">Our Pixelforge cost</th><th class="n">Pixelforge reports</th><th>Check</th><th class="n">Profit</th><th class="n">Estimated</th><th>Capped</th></tr></thead><tbody>
+  ${L.days.map(d=>`<tr><td><a href="#admin">${d.date}</a></td><td class="n">${d.gens}</td><td class="n">${L.exact(d.charged)}</td><td class="n">${L.exact(d.provider)}</td><td class="n">${L.exact(d.pixelforge)}</td>
+    <td>${d.provider===d.pixelforge?'<span class="ok">[ MATCH ]</span>':`<span class="bad">[ OFF ${L.exact(d.pixelforge-d.provider)} ]</span>`}</td><td class="n">${L.exact(d.profit)}</td><td class="n">${L.cents(d.estLow,"down")}–${L.cents(d.estHigh,"up")}</td><td>${d.cappedCount?`<span class="bad">${d.cappedCount} · ${L.exact(d.absorbed)}</span>`:"—"}</td></tr>`).join("")}
+  </tbody></table></div>
+  <div class="sec">By user</div><div class="scroll"><table><thead><tr><th>User</th><th class="n">Imgs</th><th class="n">Charged</th><th class="n">Pixelforge cost</th><th class="n">Profit</th><th class="n">Estimated</th><th>Capped</th></tr></thead><tbody>
+  ${L.users.map(u=>`<tr><td>${u.name} <span class="dim">${u.email}</span></td><td class="n">${u.gens}</td><td class="n">${L.exact(u.charged)}</td><td class="n">${L.exact(u.provider)}</td><td class="n">${L.exact(u.profit)}</td><td class="n">${L.cents(u.estLow,"down")}–${L.cents(u.estHigh,"up")}</td><td>${u.cappedCount?`<span class="bad">${u.cappedCount}</span>`:"—"}</td></tr>`).join("")}
+  </tbody></table></div>
+  <div class="sec">${L.days[0].date} · each image</div><div class="scroll"><table><thead><tr><th>Prompt</th><th class="n">Estimate</th><th style="width:200px">Landed</th><th class="n">Charged</th><th class="n">Pixelforge cost</th></tr></thead><tbody>
+  ${L.generations.filter(g=>g.status==="succeeded").map(g=>`<tr><td>${g.prompt.slice(0,46)}${g.capped?' <span class="bad">[capped]</span>':""}</td><td class="n">${L.cents(g.estLow,"down")}–${L.cents(g.estHigh,"up")}</td><td><div class="tick"><i style="left:${Math.min(100,L.rangePos(g)*100)}%"></i></div></td><td class="n">${L.exact(g.actual)}</td><td class="n">${L.exact(g.provider)}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+function render(){
+  const p=(location.hash||"#generate").slice(1);chrome(p);
+  document.getElementById("main").innerHTML=({generate,history,credits,admin}[p]||generate)();
+  if(p!=="generate")return;
+  const t=document.getElementById("p");
+  t.oninput=()=>{S.prompt=t.value;const c=t.selectionStart;render();const n=document.getElementById("p");n.focus();n.setSelectionRange(c,c)};
+  document.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{S.size=b.dataset.size;render()});
+  document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{S.quality=b.dataset.q;render()});
+  document.querySelectorAll("[data-ref]").forEach(i=>i.onchange=()=>{S.refs[+i.dataset.ref]=i.value;render()});
+  document.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{S.refs.splice(+b.dataset.rm,1);render()});
+  const a=document.getElementById("add");if(a)a.onclick=()=>{S.refs.push("");render()};
+  document.getElementById("low").onchange=e=>{S.low=e.target.checked;render()};
+}
+addEventListener("hashchange",render);render();
+</script>
+</body>
+</html>

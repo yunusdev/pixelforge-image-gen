@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab A · Proof sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<!--
+  Direction: "Proof sheet". A print-shop press proof: cool paper, navy ink, CMY process colours used
+  only as signal (status + cost components), registration marks as structure.
+  Signature: the cost meter. A calibration strip showing the estimate range split by what drives
+  the cost, with the actual charge landing on it as a registration crosshair.
+-->
+<style>
+  :root{
+    --paper:#EEF1F4; --sheet:#FFFFFF; --ink:#14213D; --ink-2:#5B6478; --rule:#D3D9E1;
+    --cyan:#0096D6; --magenta:#C81D6B; --yellow:#E9B400; --key:#14213D; --ok:#1F8A5B;
+    --display:"Archivo",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font:15px/1.5 var(--display);font-variation-settings:"wdth" 100}
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+  /* rail */
+  .rail{border-right:1px solid var(--rule);padding:28px 20px;display:flex;flex-direction:column;gap:28px;position:sticky;top:0;height:100vh}
+  .brand{font-weight:800;font-variation-settings:"wdth" 125;font-size:20px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+  .reg{width:18px;height:18px;border:1.5px solid var(--ink);border-radius:50%;position:relative;flex:none}
+  .reg::before,.reg::after{content:"";position:absolute;background:var(--ink)}
+  .reg::before{left:50%;top:-4px;bottom:-4px;width:1.5px;transform:translateX(-50%)}
+  .reg::after{top:50%;left:-4px;right:-4px;height:1.5px;transform:translateY(-50%)}
+  .nav{display:flex;flex-direction:column;gap:2px}
+  .nav a{text-decoration:none;padding:8px 10px;border-radius:6px;color:var(--ink-2);font-weight:500}
+  .nav a[aria-current]{background:var(--sheet);color:var(--ink);box-shadow:inset 3px 0 0 var(--ink)}
+  .wallet{margin-top:auto;background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:14px}
+  .wallet .k{font-size:12px;color:var(--ink-2)}
+  .wallet .v{font-family:var(--mono);font-size:20px;font-weight:600}
+  .wallet .sub{font-size:12px;color:var(--ink-2);margin-top:4px}
+  .cmy{display:flex;gap:3px;margin-top:10px}.cmy i{height:4px;flex:1;border-radius:2px}
+  main{padding:36px 44px 80px;max-width:1180px}
+  h1{font-variation-settings:"wdth" 125;font-weight:800;font-size:34px;line-height:1.05;margin:0 0 6px;letter-spacing:-.02em}
+  .lede{color:var(--ink-2);margin:0 0 28px}
+  .money{font-family:var(--mono);font-feature-settings:"tnum";border-bottom:1px dotted var(--ink-2);cursor:help}
+  .card{background:var(--sheet);border:1px solid var(--rule);border-radius:12px}
+  label{font-weight:600;font-size:13px;display:block;margin-bottom:6px}
+  textarea,input[type=url]{width:100%;font:inherit;border:1px solid var(--rule);border-radius:8px;padding:10px 12px;background:#fff;color:var(--ink)}
+  textarea{min-height:120px;resize:vertical}
+  .hint{font-size:12px;color:var(--ink-2);margin-top:4px;display:flex;justify-content:space-between}
+  .seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+  .seg button{font:inherit;border:0;background:#fff;padding:8px 14px;color:var(--ink-2);cursor:pointer;border-right:1px solid var(--rule)}
+  .seg button:last-child{border-right:0}
+  .seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+  .field{margin-bottom:20px}
+  .btn{font:inherit;font-weight:700;border:0;border-radius:8px;padding:12px 18px;cursor:pointer;background:var(--ink);color:#fff}
+  .btn[disabled]{background:#B9C1CD;cursor:not-allowed}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule)}
+  .link{background:none;border:0;font:inherit;color:var(--cyan);cursor:pointer;padding:0;font-weight:600}
+  /* generate */
+  .gen{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:start}
+  .gen form{padding:24px}
+  .meterbox{padding:24px;position:sticky;top:24px}
+  .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+  .range{font-family:var(--mono);font-size:32px;font-weight:600;margin:6px 0 2px;letter-spacing:-.02em}
+  .cap{font-size:13px;color:var(--ink-2)}
+  /* SIGNATURE: meter strip */
+  .meter{margin:22px 0 8px;position:relative}
+  .strip{display:flex;height:26px;border:1.5px solid var(--ink);border-radius:3px;overflow:hidden;background:repeating-linear-gradient(90deg,#fff 0 6px,#F4F6F8 6px 12px)}
+  .strip span{height:100%;transition:flex-basis .35s ease}
+  .strip .var{background:repeating-linear-gradient(135deg,currentColor 0 3px,transparent 3px 7px);opacity:.75}
+  .ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink-2);margin-top:6px}
+  .lowmark{position:absolute;top:-6px;bottom:18px;width:0;border-left:1.5px dashed var(--ink)}
+  .legend{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:8px}
+  .legend li{display:grid;grid-template-columns:12px 1fr auto;gap:10px;align-items:baseline;font-size:13px}
+  .legend i{width:12px;height:12px;border-radius:2px;display:inline-block;transform:translateY(2px)}
+  .legend small{color:var(--ink-2);display:block}
+  .afford{margin-top:18px;padding:12px 14px;border-radius:8px;font-size:13px}
+  .afford.ok{background:#EAF5EF;color:#145C3C}
+  .afford.no{background:#FBEAF1;color:#8A1248}
+  .toggle{font-size:12px;color:var(--ink-2);margin-top:14px;display:flex;gap:8px;align-items:center}
+  /* history: contact sheet */
+  .sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+  .frame{overflow:hidden;display:flex;flex-direction:column}
+  .plate{aspect-ratio:4/3;background:#E3E8EE;position:relative;display:grid;place-items:center;border-bottom:1px solid var(--rule)}
+  .plate img{width:100%;height:100%;object-fit:cover}
+  .plate .crop{position:absolute;width:14px;height:14px;border-color:var(--ink-2);opacity:.5}
+  .crop.tl{top:8px;left:8px;border-top:1px solid;border-left:1px solid}.crop.br{bottom:8px;right:8px;border-bottom:1px solid;border-right:1px solid}
+  .plate .msg{font-size:13px;color:var(--ink-2);text-align:center;padding:0 18px}
+  .pulse{width:46px;height:46px;border-radius:50%;border:2px solid var(--yellow);border-top-color:transparent;animation:spin 1.1s linear infinite;margin:0 auto 10px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.pulse{animation:none}.strip span{transition:none}}
+  .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+  .prompt{font-weight:600;line-height:1.3;margin:0}
+  .meta{font-size:12px;color:var(--ink-2)}
+  .status{display:inline-flex;gap:6px;align-items:center;font-size:12px;font-weight:600;padding:3px 8px;border-radius:99px;background:#F1F3F6;width:max-content}
+  .status i{width:8px;height:8px;border-radius:50%}
+  .mini{position:relative;height:10px;border:1px solid var(--ink);border-radius:2px;background:repeating-linear-gradient(90deg,#fff 0 4px,#F1F3F6 4px 8px)}
+  .mini .hit{position:absolute;top:-6px;width:14px;height:20px;transform:translateX(-50%)}
+  .mini .hit::before,.mini .hit::after{content:"";position:absolute;background:var(--magenta)}
+  .mini .hit::before{left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%)}
+  .mini .hit::after{top:50%;left:0;right:0;height:2px;transform:translateY(-50%)}
+  .costrow{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-2)}
+  .costrow b{color:var(--ink);font-weight:600}
+  .err{font-size:13px;background:#FBEAF1;color:#8A1248;padding:10px 12px;border-radius:8px}
+  .err b{display:block}
+  .pager{display:flex;justify-content:space-between;align-items:center;margin-top:24px;font-size:13px;color:var(--ink-2)}
+  /* credits */
+  .credits{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .bal{padding:24px}
+  .bigmoney{font-family:var(--mono);font-size:44px;font-weight:600;letter-spacing:-.03em}
+  .split{display:flex;gap:2px;height:12px;margin:16px 0 8px;border-radius:3px;overflow:hidden}
+  .packs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:24px}
+  .pack{border:1.5px solid var(--ink);border-radius:10px;padding:18px;background:#fff;text-align:left;font:inherit;cursor:pointer}
+  .pack:hover{background:var(--ink);color:#fff}
+  .pack b{font-family:var(--mono);font-size:24px;display:block}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-2);text-align:left;font-weight:600;padding:10px 12px;border-bottom:1.5px solid var(--ink)}
+  td{padding:10px 12px;border-bottom:1px solid var(--rule)}
+  td.n,th.n{text-align:right;font-family:var(--mono);font-feature-settings:"tnum"}
+  .pos{color:var(--ok)}.neg{color:var(--ink)}
+  .badge{font-size:11px;font-weight:700;padding:2px 7px;border-radius:99px}
+  .b-ok{background:#EAF5EF;color:#145C3C}.b-warn{background:#FFF4D6;color:#7A5A00}.b-cap{background:#FBEAF1;color:#8A1248}
+  .tabs{display:flex;gap:6px;margin:0 0 14px}
+  .section{margin-top:32px}
+  .section h2{font-variation-settings:"wdth" 112;font-size:18px;margin:0 0 12px}
+  .drill{padding:18px}
+  .toolbar{display:flex;gap:12px;align-items:center;margin-bottom:18px;font-size:13px;color:var(--ink-2)}
+  .toolbar input{font:inherit;border:1px solid var(--rule);border-radius:6px;padding:6px 8px}
+  @media (max-width:860px){.app{grid-template-columns:1fr}.rail{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center}.wallet{margin:0}.gen,.credits{grid-template-columns:1fr}main{padding:24px 18px}.packs{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand"><span class="reg" aria-hidden="true"></span>Pixelforge</div>
+    <nav class="nav" id="nav"></nav>
+    <div class="wallet" id="wallet"></div>
+  </aside>
+  <main id="main"></main>
+</div>
+<script src="../mock-data.js"></script>
+<script>
+const L = window.LAB;
+const C = { prompt:"var(--cyan)", refs:"var(--yellow)", output:"var(--key)", thinking:"var(--magenta)" };
+const $ = (h) => { const t=document.createElement("template"); t.innerHTML=h.trim(); return t.content; };
+const m = (n, dir) => `<span class="money" title="${L.exact(n)}">${L.cents(n, dir)}</span>`;
+const STATUS = {
+  waiting:{t:"Waiting for a slot", c:"var(--ink-2)"}, queued:{t:"Queued", c:"var(--cyan)"},
+  processing:{t:"Processing", c:"var(--yellow)"}, succeeded:{t:"Done", c:"var(--ok)"}, failed:{t:"Failed · free", c:"var(--magenta)"}
+};
+const state = { prompt:"A lighthouse on a cliff at dawn, oil painting", size:"1536x1024", quality:"high", refs:["https://example.com/style.png"], lowBalance:false, page:"generate" };
+
+function wallet(){
+  document.getElementById("wallet").innerHTML = `
+    <div class="k">Available</div><div class="v">${m(L.available)}</div>
+    <div class="sub">${m(L.balance)} balance · ${m(L.held)} set aside for ${L.inProgress.length} in progress</div>
+    <div class="cmy" aria-hidden="true"><i style="background:var(--cyan)"></i><i style="background:var(--magenta)"></i><i style="background:var(--yellow)"></i><i style="background:var(--key)"></i></div>`;
+}
+function nav(){
+  const items=[["generate","Generate"],["history","History"],["credits","Credits"],["admin","Admin report"]];
+  document.getElementById("nav").innerHTML = items.map(([k,t])=>`<a href="#${k}" ${state.page===k?'aria-current="page"':''}>${t}</a>`).join("");
+}
+
+function meter(e){
+  const total = e.breakdown.reduce((s,b)=>s+b.high,0);
+  const parts = [["prompt",0],["refs",1],["output",2],["thinking",3]];
+  const segs = parts.map(([k,i])=>{
+    const b=e.breakdown[i]; const fixed=b.low, vari=b.high-b.low;
+    return (fixed?`<span style="flex-basis:${fixed/total*100}%;background:${C[k]}"></span>`:"")+
+           (vari?`<span class="var" style="flex-basis:${vari/total*100}%;color:${C[k]}"></span>`:"");
+  }).join("");
+  const lowPct = e.providerLow/e.providerHigh*100;
+  return `<div class="meter"><div class="lowmark" style="left:${lowPct}%" title="Lowest possible"></div><div class="strip" role="img" aria-label="Cost split by what drives it">${segs}</div>
+    <div class="ticks"><span>$0</span><span>low ${L.cents(e.lowNano,"down")}</span><span>max ${L.cents(e.highNano,"up")}</span></div></div>
+    <ul class="legend">${parts.map(([k,i])=>{const b=e.breakdown[i];return `<li><i style="background:${C[k]}"></i><span>${b.label}<small>${b.tokens} tokens · ${b.note}</small></span><span class="money" title="${L.exact(Math.ceil(b.high*1.25))}">${b.low===b.high?L.cents(Math.ceil(b.low*1.25)):L.cents(Math.floor(b.low*1.25),"down")+"–"+L.cents(Math.ceil(b.high*1.25),"up")}</span></li>`}).join("")}</ul>`;
+}
+
+function renderGenerate(){
+  const e = L.estimate(state.prompt, state.size, state.quality, state.refs.filter(Boolean).length);
+  const avail = state.lowBalance ? 120_000_000 : L.available;
+  const can = avail >= e.highNano && state.prompt.trim().length>0;
+  const chars=[...state.prompt].length;
+  return `<h1>Generate</h1><p class="lede">Describe an image. The cost range updates as you type.</p>
+  <div class="gen">
+    <form class="card" onsubmit="event.preventDefault()">
+      <div class="field"><label for="p">Prompt</label><textarea id="p" maxlength="4000">${state.prompt}</textarea>
+        <div class="hint"><span>Longer prompts cost slightly more.</span><span>${chars} / 4,000</span></div></div>
+      <div class="field"><label>Size</label><div class="seg" role="group" aria-label="Size">${["1024x1024","1536x1024","1024x1536"].map(s=>`<button type="button" data-size="${s}" aria-pressed="${state.size===s}">${s==="1024x1024"?"Square":s==="1536x1024"?"Landscape":"Portrait"} <small>${s}</small></button>`).join("")}</div></div>
+      <div class="field"><label>Quality</label><div class="seg" role="group" aria-label="Quality">${["low","medium","high"].map(q=>`<button type="button" data-q="${q}" aria-pressed="${state.quality===q}">${q[0].toUpperCase()+q.slice(1)}</button>`).join("")}</div></div>
+      <div class="field"><label>Reference images <span style="font-weight:400;color:var(--ink-2)">optional, up to 4</span></label>
+        ${state.refs.map((r,i)=>`<div style="display:flex;gap:8px;margin-bottom:8px"><input type="url" data-ref="${i}" value="${r}" placeholder="https://…"><button type="button" class="btn ghost" data-rm="${i}" aria-label="Remove reference ${i+1}">Remove</button></div>`).join("")}
+        ${state.refs.length<4?`<button type="button" class="link" id="addref">+ Add reference URL</button>`:""}
+        <div class="hint"><span>Each reference adds ${m(Math.ceil(765*10000*1.25))} whether or not it's used.</span></div></div>
+      <button class="btn" ${can?"":"disabled"}>Generate · up to ${L.cents(e.highNano,"up")}</button>
+    </form>
+    <aside class="card meterbox" aria-live="polite">
+      <div class="eyebrow">You'll pay</div>
+      <div class="range">${L.cents(e.lowNano,"down")} – ${L.cents(e.highNano,"up")}</div>
+      <div class="cap">Never more than <b>${m(e.highNano,"up")}</b>. The exact amount depends on how long Pixelforge thinks; you pay only if the image succeeds.</div>
+      ${meter(e)}
+      <div class="afford ${can?"ok":"no"}">${can?`You have ${m(avail)} available.`:`Not enough credits. You have ${m(avail)} available and this could cost up to ${m(e.highNano,"up")}. <a href="#credits">Buy credits</a>`}</div>
+      <label class="toggle"><input type="checkbox" id="lowbal" ${state.lowBalance?"checked":""}> Lab: simulate low balance</label>
+    </aside>
+  </div>`;
+}
+
+function card(g){
+  const s=STATUS[g.status];
+  let plate;
+  if(g.status==="succeeded" && g.image) plate=`<img src="${g.image}" alt="${g.prompt}">`;
+  else if(g.status==="succeeded") plate=`<div class="msg"><b>Image expired</b><br>Pixelforge keeps images for 24 hours.</div>`;
+  else if(g.status==="failed") plate=`<div class="msg">No image</div>`;
+  else plate=`<div class="msg"><div class="pulse" aria-hidden="true"></div>${g.status==="waiting"?"Pixelforge is busy. Retrying automatically.":g.status==="queued"?"In Pixelforge's queue":"Drawing…"}</div>`;
+  const pos=L.rangePos(g);
+  const err = g.status==="failed" ? `<div class="err"><b>${L.ERRORS[g.error.code].title}</b>${L.ERRORS[g.error.code].body}</div><button class="btn ghost">Try again</button>` : "";
+  const cost = g.status==="succeeded"
+    ? `<div class="mini" title="Where the charge landed in the estimate"><span class="hit" style="left:${Math.min(100,Math.max(0,pos*100))}%"></span></div>
+       <div class="costrow"><span>Estimate ${L.cents(g.estLow,"down")}–${L.cents(g.estHigh,"up")}</span><span>Charged <b>${m(g.actual)}</b>${g.capped?' <span class="badge b-cap" title="Pixelforge raised prices after you submitted. We kept our promise and charged the max.">capped</span>':""}</span></div>`
+    : g.status==="failed" ? `<div class="costrow"><span>Estimate ${L.cents(g.estLow,"down")}–${L.cents(g.estHigh,"up")}</span><span>Charged <b>$0.00</b></span></div>`
+    : `<div class="costrow"><span>Up to <b>${m(g.estHigh,"up")}</b> set aside</span><span>${L.cents(g.estLow,"down")}–${L.cents(g.estHigh,"up")}</span></div>`;
+  return `<article class="card frame"><div class="plate"><span class="crop tl"></span><span class="crop br"></span>${plate}</div>
+    <div class="body"><span class="status"><i style="background:${s.c}"></i>${s.t}</span>
+    <p class="prompt">${g.prompt}</p><div class="meta">${g.size} · ${g.quality}${g.refs.length?` · ${g.refs.length} reference${g.refs.length>1?"s":""}`:""}</div>${cost}${err}</div></article>`;
+}
+function renderHistory(){
+  return `<h1>History</h1><p class="lede">Updates on its own while anything is in progress.</p>
+  <div class="sheet">${L.generations.map(card).join("")}</div>
+  <div class="pager"><span>Showing 1–11 of 11</span><span><button class="btn ghost" disabled>Newer</button> <button class="btn ghost" disabled>Older</button></span></div>`;
+}
+
+function renderCredits(){
+  const pctHeld = L.held/L.balance*100;
+  return `<h1>Credits</h1><p class="lede">Credits are US dollars. You're only charged when an image succeeds.</p>
+  <div class="credits">
+    <div class="card bal"><div class="eyebrow">Available now</div><div class="bigmoney">${m(L.available)}</div>
+      <div class="split" aria-hidden="true"><span style="flex:${100-pctHeld};background:var(--ink)"></span><span style="flex:${pctHeld};background:repeating-linear-gradient(135deg,var(--yellow) 0 3px,#fff 3px 6px)"></span></div>
+      <div class="meta">Balance ${m(L.balance)} minus ${m(L.held)} set aside for ${L.inProgress.length} images in progress (their maximum cost). It comes back as they finish.</div></div>
+    <div class="card"><div class="packs">${L.packs.map(p=>`<button class="pack">Buy<b>$${p}.00</b><span class="meta">Fake purchase, added instantly</span></button>`).join("")}</div></div>
+  </div>
+  <div class="section"><h2>Ledger</h2><div class="card"><table><thead><tr><th>When</th><th>What</th><th class="n">Amount</th></tr></thead><tbody>
+    ${L.ledger.map(e=>`<tr><td>${new Date(e.at).toLocaleString()}</td><td>${e.reason}${e.gen?` · <span class="meta">${L.generations.find(g=>g.id===e.gen).prompt.slice(0,40)}…</span>`:""}</td><td class="n ${e.amount>0?"pos":"neg"}" title="${L.exact(e.amount)}">${e.amount>0?"+":"−"}${L.cents(Math.abs(e.amount))}</td></tr>`).join("")}
+  </tbody></table></div></div>`;
+}
+
+function renderAdmin(){
+  const tot = L.days.reduce((a,d)=>({c:a.c+d.charged,p:a.p+d.provider,g:a.g+d.gens}),{c:0,p:0,g:0});
+  const okDays = L.days.filter(d=>d.provider===d.pixelforge).length;
+  return `<h1>Admin report</h1><p class="lede">UTC days, counted by when each image finished, the same way Pixelforge bills.</p>
+  <div class="toolbar">From <input type="date" value="${L.days.at(-1).date}"> to <input type="date" value="${L.days[0].date}"> <span>max 92 days</span>
+    <span style="margin-left:auto"><span class="badge ${okDays===L.days.length?"b-ok":"b-warn"}">${okDays}/${L.days.length} days match Pixelforge</span></span></div>
+  <div class="card"><table><thead><tr><th>Day</th><th class="n">Images</th><th class="n">Charged</th><th class="n">Pixelforge cost</th><th class="n">Pixelforge says</th><th class="n">Profit</th><th class="n">Estimate range</th><th>Notes</th></tr></thead><tbody>
+  ${L.days.map(d=>`<tr><td><button class="link">${d.date}</button></td><td class="n">${d.gens}</td><td class="n">${L.exact(d.charged)}</td><td class="n">${L.exact(d.provider)}</td>
+    <td class="n">${L.exact(d.pixelforge)} ${d.provider===d.pixelforge?'<span class="badge b-ok">✓</span>':'<span class="badge b-warn">off by '+L.exact(d.pixelforge-d.provider)+'</span>'}</td>
+    <td class="n pos">${L.exact(d.profit)}</td><td class="n">${L.cents(d.estLow,"down")}–${L.cents(d.estHigh,"up")}</td>
+    <td>${d.cappedCount?`<span class="badge b-cap">${d.cappedCount} capped · ${L.exact(d.absorbed)} absorbed</span>`:""}</td></tr>`).join("")}
+  <tr><td><b>Total</b></td><td class="n"><b>${tot.g}</b></td><td class="n"><b>${L.exact(tot.c)}</b></td><td class="n"><b>${L.exact(tot.p)}</b></td><td></td><td class="n pos"><b>${L.exact(tot.c-tot.p)}</b></td><td></td><td></td></tr>
+  </tbody></table></div>
+  <div class="section"><h2>By user</h2><div class="card"><table><thead><tr><th>User</th><th class="n">Images</th><th class="n">Charged</th><th class="n">Pixelforge cost</th><th class="n">Profit</th><th class="n">Estimate range</th><th>Notes</th></tr></thead><tbody>
+  ${L.users.map(u=>`<tr><td>${u.name}<div class="meta">${u.email}</div></td><td class="n">${u.gens}</td><td class="n">${L.exact(u.charged)}</td><td class="n">${L.exact(u.provider)}</td><td class="n pos">${L.exact(u.profit)}</td><td class="n">${L.cents(u.estLow,"down")}–${L.cents(u.estHigh,"up")}</td><td>${u.cappedCount?`<span class="badge b-cap">${u.cappedCount} capped</span>`:""}</td></tr>`).join("")}
+  </tbody></table></div></div>
+  <div class="section"><h2>${L.days[0].date} · each image</h2><div class="card drill"><table><thead><tr><th>Prompt</th><th class="n">Estimate</th><th>Where it landed</th><th class="n">Charged</th><th class="n">Pixelforge cost</th></tr></thead><tbody>
+  ${L.generations.filter(g=>g.status==="succeeded").map(g=>`<tr><td>${g.prompt}</td><td class="n">${L.exact(g.estLow)}<br>${L.exact(g.estHigh)}</td>
+    <td style="min-width:160px"><div class="mini"><span class="hit" style="left:${Math.min(100,L.rangePos(g)*100)}%"></span></div><div class="meta">${Math.round(Math.min(1,L.rangePos(g))*100)}% of the way to max${g.capped?' · <span class="badge b-cap">capped</span>':""}</div></td>
+    <td class="n">${L.exact(g.actual)}</td><td class="n">${L.exact(g.provider)}</td></tr>`).join("")}
+  </tbody></table></div></div>`;
+}
+
+function render(){
+  state.page = (location.hash||"#generate").slice(1);
+  nav(); wallet();
+  const main=document.getElementById("main");
+  main.innerHTML = ({generate:renderGenerate,history:renderHistory,credits:renderCredits,admin:renderAdmin}[state.page]||renderGenerate)();
+  if(state.page==="generate") bind();
+}
+function bind(){
+  const p=document.getElementById("p");
+  p.addEventListener("input",()=>{state.prompt=p.value; const pos=p.selectionStart; render(); const n=document.getElementById("p"); n.focus(); n.setSelectionRange(pos,pos);});
+  document.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{state.size=b.dataset.size;render()});
+  document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{state.quality=b.dataset.q;render()});
+  document.querySelectorAll("[data-ref]").forEach(i=>i.onchange=()=>{state.refs[+i.dataset.ref]=i.value;render()});
+  document.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{state.refs.splice(+b.dataset.rm,1);render()});
+  const add=document.getElementById("addref"); if(add) add.onclick=()=>{state.refs.push("");render()};
+  document.getElementById("lowbal").onchange=(e)=>{state.lowBalance=e.target.checked;render()};
+}
+addEventListener("hashchange",render); render();
+</script>
+</body>
+</html>
