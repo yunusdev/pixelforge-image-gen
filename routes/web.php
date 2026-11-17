@@ -2,10 +2,13 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::get('/', fn () => auth()->check()
+    ? redirect()->route('create')
+    : redirect()->route('register'))->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+Route::middleware('auth')->group(function () {
+    Route::inertia('create', 'Create')->name('create');
+    Route::inertia('credits', 'Credits')->name('credits');
 });
 
 require __DIR__.'/settings.php';
