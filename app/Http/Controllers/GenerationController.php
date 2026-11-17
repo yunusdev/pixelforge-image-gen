@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Credits\NotEnoughCredits;
 use App\Generations\SubmitGenerations;
 use App\Http\Requests\StoreGenerationRequest;
 use App\Pricing\Cents;
@@ -22,7 +23,12 @@ class GenerationController extends Controller
 
         /** @var array{prompt: string, size: string, quality: string, reference_images: array<int, string>} $settings */
         $settings = $request->safe()->only(['prompt', 'size', 'quality', 'reference_images']);
-        $generation = $generations->submit($request->user(), $settings, $rules);
+
+        try {
+            $generation = $generations->submit($request->user(), $settings, $rules);
+        } catch (NotEnoughCredits $notEnough) {
+            return back()->withErrors(['prompt' => $notEnough->getMessage()]);
+        }
 
         Inertia::flash('toast', [
             'type' => 'success',

@@ -2,25 +2,29 @@
 
 namespace App\Generations;
 
+use App\Credits\Affordability;
+use App\Credits\NotEnoughCredits;
 use App\Jobs\SubmitGeneration;
 use App\Models\Generation;
 use App\Models\User;
 use App\Pricing\GenerationSettings;
 use App\Pricing\Pricing;
 use App\Pricing\PricingRules;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
  * Save first, send in the background: a submitted generation is stored as Waiting for a slot
  * with its settings, estimate and UUID, then a queued job sends it to Pixelforge.
  *
- * Ticket 06 adds the affordability check (under a lock on the user) here.
+ * It's saved only if the user's available balance covers its estimate top, checked under a
+ * lock on the user so rapid submits can't overspend together (ADR-0002).
  */
 class SubmitGenerations
 {
     /**
      * @param  array{prompt: string, size: string, quality: string, reference_images: array<int, string>}  $settings
+     *
+     * @throws NotEnoughCredits
      */
     public function submit(User $user, array $settings, PricingRules $rules): Generation
     {
@@ -31,7 +35,7 @@ class SubmitGenerations
             count($settings['reference_images']),
         ), $rules);
 
-        $generation = DB::transaction(fn (): Generation => $user->generations()->create([
+        $generation = Affordability::startIfAffordable($user, $estimate->high, fn (): Generation => $user->generations()->create([
             'uuid' => (string) Str::uuid(),
             'status' => GenerationStatus::Waiting,
             'prompt' => $settings['prompt'],
