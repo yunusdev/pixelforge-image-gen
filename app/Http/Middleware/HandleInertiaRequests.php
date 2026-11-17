@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Credits\Affordability;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -40,6 +41,10 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+            ],
+            // The "Available" button and the account menu. Nanodollars.
+            'credits' => fn () => $request->user() === null ? null : [
+                'available' => Affordability::availableBalance($request->user()),
             ],
         ];
     }
