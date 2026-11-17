@@ -48,6 +48,27 @@ test('a failed generation carries its plain-words reason and costs nothing', fun
             ->where('generations.0.failure.body', 'Pixelforge rejected this prompt. Try rewording it.'));
 });
 
+test('a done generation carries its actual charge, capped flag and image', function () {
+    Generation::factory()->for($this->user)->status(GenerationStatus::Succeeded)->create([
+        'provider_cost' => 96_045_000,
+        'actual_charge' => 86_337_500,
+        'capped' => true,
+        'absorbed' => 33_718_750,
+        'image_url' => 'https://img.pixelforge.test/done.png',
+        'image_url_expires_at' => '2026-11-19T10:01:00Z',
+    ]);
+
+    $this->actingAs($this->user)->get(route('create'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('generations.0.status', 'succeeded')
+            ->where('generations.0.charged', 86_337_500)
+            ->where('generations.0.capped', true)
+            ->where('generations.0.estimate_low', 58_187_500)
+            ->where('generations.0.estimate_high', 86_337_500)
+            ->where('generations.0.image_url', 'https://img.pixelforge.test/done.png')
+            ->where('generations.0.image_url_expires_at', '2026-11-19T10:01:00Z'));
+});
+
 test('users only see their own generations', function () {
     Generation::factory()->create();
 
