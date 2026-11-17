@@ -5,17 +5,24 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/*
+ * The app is light only. shadcn-vue components keep their dark: classes; tying
+ * them to a .dark class that is never set stops them following the OS setting.
+ */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+    /* Geist for interface text, Newsreader for headings, Geist Mono for every amount, count and timer. */
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
+        'Geist', 'Helvetica Neue', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: 'Newsreader', Georgia, ui-serif, serif;
+    --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
 
-    --radius-lg: var(--radius);
-    --radius-md: calc(var(--radius) - 2px);
+    /* 6px chips and buttons, 8px inputs, 10px tiles, 12px cards and the prompt bar. */
     --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 2px);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -59,77 +66,75 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Pastel status tags: grey waiting, blue queued, yellow processing, green done, red failed. */
+    --color-tag-gray: var(--tag-gray);
+    --color-tag-gray-foreground: var(--tag-gray-foreground);
+    --color-tag-blue: var(--tag-blue);
+    --color-tag-blue-foreground: var(--tag-blue-foreground);
+    --color-tag-yellow: var(--tag-yellow);
+    --color-tag-yellow-foreground: var(--tag-yellow-foreground);
+    --color-tag-green: var(--tag-green);
+    --color-tag-green-foreground: var(--tag-green-foreground);
+    --color-tag-red: var(--tag-red);
+    --color-tag-red-foreground: var(--tag-red-foreground);
+
+    /* The selected / hover surface used by nav links, chips and menus. */
+    --color-subtle: var(--subtle);
+
+    /* Text inside a solid ok toast. */
+    --color-success: var(--success);
 }
 
+/* Warm monochrome palette from the design reference (lab version D). */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.87 0 0);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
+    --background: #fbfbfa;
+    --foreground: #2f3437;
+    --card: #ffffff;
+    --card-foreground: #2f3437;
+    --popover: #ffffff;
+    --popover-foreground: #2f3437;
+    --primary: #111111;
+    --primary-foreground: #ffffff;
+    --secondary: #f1f0ec;
+    --secondary-foreground: #2f3437;
+    --muted: #f1f0ec;
+    --muted-foreground: #787774;
+    --accent: #f7f6f3;
+    --accent-foreground: #2f3437;
+    --destructive: #9f2f2d;
+    --destructive-foreground: #9f2f2d;
+    --border: #eaeaea;
+    --input: #eaeaea;
+    --ring: #1f6c9f;
+    --chart-1: #2f3437;
+    --chart-2: #1f6c9f;
+    --chart-3: #346538;
+    --chart-4: #956400;
+    --chart-5: #9f2f2d;
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.87 0 0);
-}
+    --sidebar: #fbfbfa;
+    --sidebar-foreground: #2f3437;
+    --sidebar-primary: #111111;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #f1f0ec;
+    --sidebar-accent-foreground: #2f3437;
+    --sidebar-border: #eaeaea;
+    --sidebar-ring: #1f6c9f;
 
-.dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
+    --tag-gray: #f1f0ec;
+    --tag-gray-foreground: #787774;
+    --tag-blue: #e1f3fe;
+    --tag-blue-foreground: #1f6c9f;
+    --tag-yellow: #fbf3db;
+    --tag-yellow-foreground: #956400;
+    --tag-green: #edf3ec;
+    --tag-green-foreground: #346538;
+    --tag-red: #fdebec;
+    --tag-red-foreground: #9f2f2d;
+
+    --subtle: #f1f0ec;
+    --success: #22412a;
 }
 
 @layer base {
@@ -137,7 +142,22 @@
         @apply border-border outline-ring/50;
     }
 
+    html {
+        color-scheme: light;
+    }
+
     body {
-        @apply bg-background text-foreground;
+        @apply bg-background text-sm/relaxed text-foreground;
+    }
+
+    h1,
+    h2,
+    h3 {
+        @apply font-serif font-normal tracking-tight;
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
     }
 }
