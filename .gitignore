@@ -48,3 +48,6 @@ yarn-error.log
 /boost.json
 /opencode.json
 /opencode.jsonc
+
+# Agent worktrees (local only)
+.claude/worktrees/
