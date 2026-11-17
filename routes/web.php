@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CreatePageController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => auth()->check()
@@ -7,7 +8,7 @@ Route::get('/', fn () => auth()->check()
     : redirect()->route('register'))->name('home');
 
 Route::middleware('auth')->group(function () {
-    Route::inertia('create', 'Create')->name('create');
+    Route::get('create', CreatePageController::class)->name('create');
     Route::inertia('credits', 'Credits')->name('credits');
 });
 

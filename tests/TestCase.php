@@ -3,6 +3,7 @@
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\Http;
 use Laravel\Fortify\Features;
 
 abstract class TestCase extends BaseTestCase
@@ -13,6 +14,9 @@ abstract class TestCase extends BaseTestCase
 
         // Feature tests never need compiled assets.
         $this->withoutVite();
+
+        // Tests never reach the real Pixelforge; fake what a test needs with Http::fake().
+        Http::preventStrayRequests();
     }
 
     protected function skipUnlessFortifyHas(string $feature, ?string $message = null): void
