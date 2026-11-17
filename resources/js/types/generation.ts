@@ -15,7 +15,10 @@ export type Generation = {
     charged: number;
     capped: boolean;
     failure: { code: string; title: string; body: string } | null;
+    /** Null once the image has expired. */
     image_url: string | null;
+    /** Pixelforge's image URL has expired (24 hours after completion); show the placeholder. */
+    image_expired: boolean;
     image_url_expires_at: string | null;
     created_at: string;
     started_at: string | null;
@@ -24,6 +27,18 @@ export type Generation = {
 
 export function isFinal(generation: Pick<Generation, 'status'>): boolean {
     return generation.status === 'succeeded' || generation.status === 'failed';
+}
+
+/** Expired as of the last load, or since then while the page stayed open. */
+export function imageExpired(
+    generation: Pick<Generation, 'image_expired' | 'image_url_expires_at'>,
+    now: Date = new Date(),
+): boolean {
+    return (
+        generation.image_expired ||
+        (generation.image_url_expires_at !== null &&
+            new Date(generation.image_url_expires_at) <= now)
+    );
 }
 
 /** Height over width, from the size ("1536x1024" → 2/3). */

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/sheet';
 import { formatCents } from '@/lib/money';
 import type { Generation } from '@/types/generation';
-import { aspect, isFinal } from '@/types/generation';
+import { aspect, imageExpired, isFinal } from '@/types/generation';
 
 /** The side panel for one image: its status, settings and what it cost (or will cost at most). */
 const props = defineProps<{ generation: Generation | null }>();
@@ -31,11 +31,7 @@ const open = computed({
 });
 
 const g = computed(() => props.generation);
-const expired = computed(
-    () =>
-        g.value?.image_url_expires_at != null &&
-        new Date(g.value.image_url_expires_at) <= new Date(),
-);
+const expired = computed(() => (g.value ? imageExpired(g.value) : false));
 /** Where the charge landed between the low estimate and the max, 0–1. */
 const position = computed(() => {
     if (!g.value || g.value.status !== 'succeeded') {

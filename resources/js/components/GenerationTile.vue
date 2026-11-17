@@ -4,18 +4,14 @@ import Amount from '@/components/Amount.vue';
 import GenerationSkeleton from '@/components/GenerationSkeleton.vue';
 import StatusTag from '@/components/StatusTag.vue';
 import type { Generation } from '@/types/generation';
-import { aspect, isFinal } from '@/types/generation';
+import { aspect, imageExpired, isFinal } from '@/types/generation';
 
 /** One image in the feed: picture or loading state, status tag, prompt and price. */
 const props = defineProps<{ generation: Generation }>();
 defineEmits<{ open: [] }>();
 
 const running = computed(() => !isFinal(props.generation));
-const expired = computed(
-    () =>
-        props.generation.image_url_expires_at !== null &&
-        new Date(props.generation.image_url_expires_at) <= new Date(),
-);
+const expired = computed(() => imageExpired(props.generation));
 const showImage = computed(
     () =>
         props.generation.status === 'succeeded' &&

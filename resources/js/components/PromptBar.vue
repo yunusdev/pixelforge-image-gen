@@ -149,7 +149,16 @@ async function fill(copied: {
     document.getElementById('prompt')?.focus();
 }
 
-defineExpose({ fill });
+/** An example prompt from the empty feed: replaces only the prompt. */
+async function fillPrompt(prompt: string): Promise<void> {
+    settings.value.prompt = prompt;
+    touched.value = true;
+    form.clearErrors();
+    await nextTick();
+    document.getElementById('prompt')?.focus();
+}
+
+defineExpose({ fill, fillPrompt });
 
 function generate(): void {
     touched.value = true;

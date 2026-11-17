@@ -173,6 +173,10 @@
     .chip[aria-expanded='true'] {
         @apply border-[#cfcdc8] bg-accent;
     }
+    /* Feed filter chips: the selected one is shaded. */
+    .chip[aria-pressed='true'] {
+        @apply bg-[#f1f0ec];
+    }
     .chip.bad {
         @apply border-[#f3cfd2] text-destructive;
     }
