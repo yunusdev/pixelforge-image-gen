@@ -8,8 +8,8 @@ use App\Pricing\Pricing;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The single place that moves a generation between statuses. The submit job calls it now;
- * webhooks and the missed-webhook sweep (ticket 04) call apply() too.
+ * The single place that moves a generation between statuses. The submit job, webhooks
+ * (GenerationWebhooks) and the missed-webhook sweep (MissedWebhookSweep) all call apply().
  *
  * Every move happens in one transaction with the generation row locked, and only forward:
  * Waiting for a slot → queued → processing → succeeded or failed. Final statuses never change.
@@ -87,7 +87,7 @@ class GenerationLifecycle
 
     /**
      * Usage × the generation's locked rates gives the provider cost; the actual charge is capped
-     * at the estimate's top (ADR-0002). Ticket 04 adds the ledger entry in this same transaction.
+     * at the estimate's top (ADR-0002). Ticket 06 adds the ledger entry in this same transaction.
      */
     private function recordSuccess(Generation $generation, PixelforgeGeneration $snapshot): void
     {
