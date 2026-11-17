@@ -10,7 +10,7 @@ As a user, I can't tell what a generation will cost before I submit it, what's h
 
 ## Solution
 
-A Laravel + Vue + Inertia web app where signed-in users write a prompt, pick a size, a quality and up to 4 reference image URLs, and see the estimate (a low–high range for the charge) before they submit. Each generation shows live status: Waiting for a slot, queued, processing, succeeded or failed. History shows the estimate, the actual charge, and the image.
+A Laravel + Vue + Inertia web app where signed-in users write a prompt, pick a size, a quality and up to 4 reference image URLs, and see the estimate (a low–high range for the charge) before they submit. Generating and history share one Create page: a feed of the user's images with a floating prompt bar at the bottom. Each generation shows live status: Waiting for a slot, queued, processing, succeeded or failed, with its estimate, its actual charge and the image.
 
 Every succeeded generation is charged exactly once: its provider cost plus a 25% markup, rounded up to the nearest nanodollar, never above the top of its estimate. Failed generations are free. Users have a balance, backed by a ledger, that starts with a $5 sign-up bonus and can be topped up with fake credit packs. A generation is blocked when the user's available balance can't cover the top of its estimate.
 
@@ -37,8 +37,8 @@ The app is deployed publicly on Laravel Cloud.
 10. As a user, I want sensible defaults (1024x1024, medium, no reference images), so that I can generate with just a prompt.
 11. As a user, I want to see the estimate as a low–high range that updates as I change the prompt, size, quality or reference images, so that I know what I'm committing to before I submit.
 12. As a user, I want the estimate to state clearly that I'll never be charged more than its top, so that I can trust it.
-13. As a user, I want invalid input (empty prompt, too long, more than 4 URLs, a non-http URL) rejected with a clear message before anything is submitted, so that I don't waste a generation.
-14. As a user, I want my generation to appear in my history immediately after I submit, so that I know it was received.
+13. As a user, I want invalid input (empty prompt, too long, more than 4 URLs, a non-http URL) explained in one plain line in the prompt bar, with the bad reference URL marked and Generate disabled until it's fixed, so that I don't waste a generation.
+14. As a user, I want my generation to appear at the top of the feed immediately after I submit, with a short confirmation of how much was set aside, so that I know it was received.
 15. As a user, I want the Generate action blocked with a clear "not enough credits" message when my available balance is below the top of the estimate, so that I can't overspend.
 
 ### Status and history
@@ -52,8 +52,8 @@ The app is deployed publicly on Laravel Cloud.
 22. As a user, I want amounts shown in cents with the exact amount on hover, so that the page is readable but nothing is hidden.
 23. As a user, I want a failed generation to show $0 and explain why it failed in plain words, so that I know it was free and what went wrong.
 24. As a user, I want different messages for a prompt Pixelforge couldn't render, a problem on Pixelforge's side, a blocked prompt, the daily limit being reached, and Pixelforge being too busy, so that I know whether to reword, wait or retry.
-25. As a user, I want a "Try again" button on failed generations that starts a new generation with the same settings, so that I can retry in one click.
-26. As a user, I want my history listed newest first, 20 per page, so that recent work is easy to find.
+25. As a user, I want a "Try again" button on failed generations that copies their settings into the prompt bar, so that I see the fresh estimate and retry with one more click.
+26. As a user, I want my images listed newest first, 20 at a time with a "Load 20 more" button, so that recent work is easy to find.
 27. As a user, I want to see the prompt, size, quality and reference images of each past generation, so that I remember what I asked for.
 
 ### Balance and credits
@@ -93,6 +93,23 @@ The app is deployed publicly on Laravel Cloud.
 51. As an operator, I want validly signed webhooks for unknown generations (including test pings) acknowledged with "OK" and logged, so that Pixelforge stops retrying and I have a record.
 52. As an operator, I want separate Pixelforge API keys, webhook URLs and signing secrets for local and deployed environments, so that each environment's numbers match Pixelforge's usage report for its key.
 
+### Interface details (from the chosen design)
+
+53. As a user, I want to filter my images by All, Running, Done or Failed, so that I can find failures quickly.
+54. As a user, I want to open any image in a side panel showing its status, settings, what I paid and where that landed in the estimate, so that each cost is explained.
+55. As a user, I want a "Use these settings" action on any image, so that I can make variations without retyping.
+56. As a user, I want the price range in the prompt bar to open an itemised breakdown (prompt, reference images, image output, thinking, 25% service fee), so that I understand what drives the price.
+57. As a new user, I want an empty state that tells me my starting credits and offers example prompts, so that I know what to do first.
+58. As a user, I want images in progress to show a calm loading animation with how long they've been waiting, so that I can tell the app is working.
+59. As a user, I want a short confirmation after buying a credit pack, and the new ledger line highlighted, so that I know it worked.
+60. As a user, I want a spending chart for the last 30 days on the Credits page, so that I can see my usage at a glance.
+61. As a user, I want an account menu with my name, email, available credits and Log out, so that account actions are in one place.
+62. As a user on a phone, I want a menu button that shows my balance and the pages, so that I can use the app on a small screen.
+63. As a non-admin, I want the Admin report link hidden, and an "Admins only" page if I open it directly, so that it's clear why I can't see it.
+64. As an operator, I want the "By user" and per-image tables paginated 20 at a time, with totals at the top always covering the whole date range, so that paging never changes the totals.
+65. As an operator, I want a clear "Couldn't check" state when Pixelforge's usage report doesn't respond, with our own numbers still shown and a Try again button, so that a provider outage isn't mistaken for wrong data.
+66. As an operator, I want empty date ranges to say so plainly, so that a blank table isn't mistaken for an error.
+
 ## Implementation Decisions
 
 ### Stack
@@ -102,6 +119,28 @@ The app is deployed publicly on Laravel Cloud.
 - The database as the queue driver, so there's no Redis.
 - Deployed on Laravel Cloud with a web process, a queue worker and the scheduler.
 - Pixelforge credentials (API key, webhook signing secret, base URL) come from config and environment variables, one key per environment.
+
+### UI (design reference: lab version D)
+
+- The design reference is `lab/d-feed-minimal/` (open it via `lab/index.html`, tab D), with the **Sidebar** layout for Credits and Admin report. It runs on fake data; the real pages rebuild it with shadcn-vue components themed to match.
+- **Look:** warm monochrome. Off-white background, charcoal text, 1px light-grey borders, 8–12px corners, pastel status tags (grey waiting, blue queued, yellow processing, green done, red failed). Fonts are Newsreader for headings, Geist for interface text, and Geist Mono for every amount, count and timer.
+- **Top bar on every page:** logo; Create · Credits · Admin report (the admin link only for admins); an "Available $x.xx" button linking to Credits; an initials account menu. Below 720px this becomes one Menu button.
+- **Create page:**
+  - Full-width masonry feed of image tiles, newest first. Each tile has a status tag, the prompt and its price ("≤ max" while running, charged amount when done, "$0.00 free" when failed). Failed tiles are compact and name the failure.
+  - Status filter chips; "Load 20 more" with "Showing x of y".
+  - A floating prompt bar holds the prompt, chips for size, quality and references (each opens a small popover), a character counter, a price-range chip that opens the itemised receipt, and Generate.
+  - Validation and not-enough-credits messages appear as one line inside the bar.
+- **Loading tiles:** waiting gets a slow light sweep, queued a faster sweep, processing soft drifting colour blobs. All carry a pill with a live elapsed timer. Motion is off when reduced motion is set.
+- **Side panel per image:** the image or placeholder, status, settings, the charge with a marker showing where it landed between the low estimate and the max, the capped note, the failure explanation, and "Try again" / "Use these settings".
+- **Credits (Sidebar layout):** a left section menu (Overview, Add credits, Ledger) and a centred column up to 1040px containing the credits card (available, balance, set aside, Top up), the 30-day spending chart, the $5/$10/$25 pack buttons, and the paginated ledger.
+- **Admin report (Sidebar layout):**
+  - A left section menu (Overview, By day, By user, Images) and the date range.
+  - Four totals: charged, Pixelforge cost, profit, matches Pixelforge.
+  - The by-day table is unpaginated (max 92 rows), with match, mismatch, capped and not-checked tags kept on one line.
+  - The by-user table is paginated.
+  - The images table is paginated and filters to a clicked day or user, with "Show all".
+- **Toasts** (top right) confirm Generate, credit purchases, and copied settings.
+- **Empty states:** no images yet (with example prompts); an empty filter result; a ledger with only the sign-up bonus; no spending yet; a report range with no data.
 
 ### Money (ADR-0001, ADR-0002)
 
@@ -154,7 +193,7 @@ The app is deployed publicly on Laravel Cloud.
 
 ### Live status
 
-- History and generate pages use Inertia polling every 2–3 seconds, only while any visible generation isn't final, and reload only the generations prop.
+- The Create page uses Inertia polling every 2–3 seconds, only while any visible generation isn't final, and reloads only the generations prop.
 
 ### Images
 
@@ -162,7 +201,7 @@ The app is deployed publicly on Laravel Cloud.
 
 ### Failure handling
 
-- `generation_failed` and `internal_error` mark the generation failed for free, with distinct user-facing messages. There's no automatic retry. "Try again" creates a new generation with the same settings.
+- `generation_failed` and `internal_error` mark the generation failed for free, with distinct user-facing messages. There's no automatic retry. "Try again" copies the failed generation's settings into the prompt bar; pressing Generate then creates a new generation with a fresh estimate and affordability check.
 
 ### Schema (shape, not final names)
 
@@ -189,6 +228,8 @@ The app is deployed publicly on Laravel Cloud.
 - Per day and per user: charged, provider cost, profit, capped count and absorbed amount, estimate sums against actual, and average position within the range.
 - A per-day Pixelforge usage comparison with ✓ or a warning.
 - A drill-down list of generations for a day or a user.
+- The by-user and per-image lists are paginated 20 per page; totals always cover the whole range.
+- If the Pixelforge usage call fails, the report still shows our numbers and marks each day "not checked" instead of hiding or guessing.
 
 ### Credits
 
@@ -207,7 +248,7 @@ The app is deployed publicly on Laravel Cloud.
   5. **Ledger:** the balance always equals the sum of the entries. A failed generation adds no entry. A succeeded generation adds exactly one, even when the webhook and the sweep both process it.
   6. **Admin report:** grouped by UTC completion day (including the 23:59 → 00:00 case), compared against a faked usage response, with capped totals and estimate accuracy.
 - **Every ticket carries tests for the three money rules where they apply:** exact cost, never twice, failed is free.
-- Pages and forms get light feature tests only (authorization and validation).
+- Pages and forms get light feature tests only (authorization, validation, admin-only access, pagination bounds).
 - **Prior art:** none, this is a greenfield repo. The starter kit's auth tests set the style.
 - **Before deploying:** a manual end-to-end run against real Pixelforge using the prompt keywords `[fail]`, `[slow]`, `[duplicate]`, `[overloaded]`, `[blocked]` and `[succeed]`, then checking the admin report against `GET /v1/usage`.
 
@@ -219,7 +260,6 @@ The app is deployed publicly on Laravel Cloud.
 - WebSockets and push updates.
 - Automatic retry of failed generations.
 - Email verification and transactional email.
-- A status filter on history.
 - Multi-currency support.
 - Treating Pixelforge price changes as anything beyond the cap.
 
@@ -227,7 +267,7 @@ The app is deployed publicly on Laravel Cloud.
 
 - **Glossary:** see the root `GLOSSARY.md`. ADRs: `docs/adr/0001` (integer nanodollars, round up), `0002` (available balance and capped charge), `0003` (webhooks processed in the request).
 - **Build order:** core first (generate, pricing, history, webhooks, sweep, deploy), checked against `/v1/usage`. Then balances and the admin report.
-- **UI:** a gitignored `lab/` folder holds 3–4 design versions of the main screens built with mock data, using different design skills. The chosen one is promoted into the real Vue pages before or during implementation.
+- **UI:** `lab/` (committed) holds five design explorations on fake data. Version D with the Sidebar layout was chosen; see "UI (design reference: lab version D)" above. View it with `python3 -m http.server 4610 --directory lab`. The lab is reference only and is never served by the app.
 - **Rate limits:** the 3-generation concurrency limit and the 60 requests/minute limit are per Pixelforge account, shared by all users and environments on that account.
 - **Before implementing, the developer needs:**
   - a Pixelforge account with 2 API keys (local and deployed), each with its webhook URL and signing secret
