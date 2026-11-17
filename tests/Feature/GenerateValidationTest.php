@@ -1,6 +1,13 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
+
+beforeEach(function () {
+    Http::fake(['pixelforge.test/pricing' => Http::response(pixelforgePricing())]);
+    Queue::fake();
+});
 
 function generate(array $settings)
 {

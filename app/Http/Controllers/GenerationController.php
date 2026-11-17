@@ -2,19 +2,32 @@
 
 namespace App\Http\Controllers;
 
+use App\Generations\SubmitGenerations;
 use App\Http\Requests\StoreGenerationRequest;
+use App\Pricing\Cents;
+use App\Pricing\PricingRulesSource;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 
 class GenerationController extends Controller
 {
-    /**
-     * Generate. For now this only validates the prompt bar's settings;
-     * saving and sending the generation to Pixelforge comes next (ticket 03).
-     */
-    public function store(StoreGenerationRequest $request): RedirectResponse
+    /** Generate: save the generation, send it in the background, and return at once. */
+    public function store(StoreGenerationRequest $request, PricingRulesSource $pricingRules, SubmitGenerations $generations): RedirectResponse
     {
-        Inertia::flash('toast', ['type' => 'info', 'message' => 'Those settings are ready. Generating images is switched on soon.']);
+        $rules = $pricingRules->current();
+
+        if ($rules === null) {
+            return back()->withErrors(['prompt' => "Prices couldn't be loaded from Pixelforge. Try again in a moment."]);
+        }
+
+        /** @var array{prompt: string, size: string, quality: string, reference_images: list<string>} $settings */
+        $settings = $request->safe()->only(['prompt', 'size', 'quality', 'reference_images']);
+        $generation = $generations->submit($request->user(), $settings, $rules);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Started. Up to '.Cents::up($generation->estimate_high).' set aside until it finishes.',
+        ]);
 
         return to_route('create');
     }
