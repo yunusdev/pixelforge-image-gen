@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import Amount from '@/components/Amount.vue';
 import AppLogo from '@/components/AppLogo.vue';
 import {
     DropdownMenu,
@@ -17,6 +18,8 @@ import { edit as editProfile } from '@/routes/profile';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+/** Nanodollars the user can start generations with right now. */
+const available = computed(() => page.props.credits?.available ?? 0);
 const { isCurrentUrl } = useCurrentUrl();
 
 const navItems = [
@@ -56,8 +59,10 @@ function logOut(): void {
             <Link
                 :href="credits()"
                 class="ml-auto hidden items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 py-1.5 whitespace-nowrap text-foreground no-underline min-[721px]:inline-flex"
-                >Available</Link
-            >
+                >Available
+                <b class="font-medium"
+                    ><Amount :nanodollars="available" rounding="down" /></b
+            ></Link>
 
             <DropdownMenu>
                 <DropdownMenuTrigger
@@ -81,7 +86,11 @@ function logOut(): void {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem as-child>
-                        <Link :href="credits()" class="w-full">Credits</Link>
+                        <Link :href="credits()" class="w-full"
+                            >Credits ·
+                            <Amount :nanodollars="available" rounding="down" />
+                            available</Link
+                        >
                     </DropdownMenuItem>
                     <DropdownMenuItem as-child>
                         <Link :href="editProfile()" class="w-full"
@@ -120,6 +129,12 @@ function logOut(): void {
         >
             <div class="px-1.5 py-2.5 text-[13px] text-muted-foreground">
                 {{ user.name }} · {{ user.email }}
+            </div>
+            <div class="px-1.5 pb-2.5 text-[13px] text-muted-foreground">
+                Available
+                <b class="font-medium text-foreground"
+                    ><Amount :nanodollars="available" rounding="down"
+                /></b>
             </div>
             <Link
                 v-for="item in navItems"

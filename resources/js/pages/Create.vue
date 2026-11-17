@@ -61,11 +61,11 @@ const selected = computed(
 );
 const loadingMore = ref(false);
 
-// Poll only the feed, and only while any visible generation isn't final.
+// Poll only the feed (and the available balance), and only while any visible generation isn't final.
 const running = computed(() => props.generations.some((g) => !isFinal(g)));
 const poll = usePoll(
     POLL_MILLISECONDS,
-    { only: ['generations', 'feed'] },
+    { only: ['generations', 'feed', 'credits'] },
     { autoStart: false },
 );
 watch(running, (now) => (now ? poll.start() : poll.stop()), {

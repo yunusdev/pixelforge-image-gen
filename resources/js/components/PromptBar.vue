@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useForm } from '@inertiajs/vue3';
+import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref } from 'vue';
 import Amount from '@/components/Amount.vue';
 import EstimateReceipt from '@/components/EstimateReceipt.vue';
@@ -22,7 +22,9 @@ import {
     SIZES,
 } from '@/lib/generationSettings';
 import type { PricingRules } from '@/lib/pricing';
+import { formatCents } from '@/lib/money';
 import { charge, estimate, promptCharacters } from '@/lib/pricing';
+import { credits } from '@/routes';
 import { store } from '@/routes/generations';
 
 const props = defineProps<{ pricing: PricingRules | null }>();
@@ -65,6 +67,18 @@ const estimateFor = (quality: Quality) =>
           );
 const current = computed(() => estimateFor(settings.value.quality));
 
+/** The server checks again under a lock; this only spares a pointless click. */
+const page = usePage();
+const available = computed(() => page.props.credits?.available ?? 0);
+const affordable = computed(
+    () => current.value === null || current.value.high <= available.value,
+);
+const notEnoughCredits = computed(() =>
+    current.value === null || affordable.value
+        ? undefined
+        : `Not enough credits. ${formatCents(available.value, 'down')} available, this could cost up to ${formatCents(current.value.high, 'up')}.`,
+);
+
 const sizeOption = computed(
     () => SIZES.find((s) => s.value === settings.value.size) ?? SIZES[0],
 );
@@ -91,12 +105,13 @@ const message = computed(() => {
         return first.message;
     }
 
-    return first ? undefined : serverMessage.value;
+    return first ? undefined : (notEnoughCredits.value ?? serverMessage.value);
 });
 const canGenerate = computed(
     () =>
         props.pricing !== null &&
         problems.value.length === 0 &&
+        affordable.value &&
         !form.processing,
 );
 
@@ -202,6 +217,12 @@ function generate(): void {
             role="status"
         >
             {{ message }}
+            <Link
+                v-if="message === notEnoughCredits"
+                :href="credits()"
+                class="text-inherit underline"
+                >Buy credits</Link
+            >
         </p>
 
         <div class="flex flex-wrap items-center gap-2 px-3 pt-2 pb-3">
