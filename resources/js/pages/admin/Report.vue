@@ -105,6 +105,11 @@ const mismatches = computed(
 const empty = computed(
     () => props.totals.images === 0 && mismatches.value === 0,
 );
+/** Days with no images and nothing to flag are still checked, just not listed. */
+const shownDays = computed(() =>
+    props.days.filter((day) => day.images > 0 || day.check === 'mismatch'),
+);
+const hiddenDays = computed(() => props.days.length - shownDays.value.length);
 const imagesTitle = computed(() => {
     if (props.filter.day) {
         return `Images that finished on ${props.filter.day}`;
@@ -406,7 +411,7 @@ const landed = (position: number | null) =>
                             </tbody>
                             <tbody v-else>
                                 <tr
-                                    v-for="day in days"
+                                    v-for="day in shownDays"
                                     :key="day.date"
                                     :class="{
                                         'bg-accent': filter.day === day.date,
@@ -513,6 +518,20 @@ const landed = (position: number | null) =>
                                             :title="`${formatExact(day.absorbed)} absorbed`"
                                             >{{ day.capped }} capped</span
                                         >
+                                    </td>
+                                </tr>
+                                <tr v-if="hiddenDays > 0">
+                                    <td
+                                        colspan="8"
+                                        class="px-3.5 py-3 text-xs text-muted-foreground"
+                                    >
+                                        {{ hiddenDays }}
+                                        {{ hiddenDays === 1 ? 'day' : 'days' }}
+                                        with no images not shown{{
+                                            usageChecked
+                                                ? ', each checked against Pixelforge'
+                                                : ''
+                                        }}.
                                     </td>
                                 </tr>
                             </tbody>
