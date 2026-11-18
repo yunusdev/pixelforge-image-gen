@@ -11,6 +11,17 @@ A Laravel + Vue app where signed-in users generate images through the Pixelforge
 
 Stack: Laravel 13 (Vue starter kit: Inertia, TypeScript, shadcn-vue, Tailwind, Fortify), PHP 8.4+, Postgres, database queue, Pest.
 
+## How it was built
+
+Built with an AI coding agent driven by [Matt Pocock's skills](https://github.com/mattpocock/skills), one step at a time:
+
+1. **Set up the skills** (`setup-matt-pocock-skills`): issue tracker as local markdown under `.scratch/`, triage labels and domain doc layout ([CLAUDE.md](CLAUDE.md), [docs/agents](docs/agents)).
+2. **Grilled the plan** (`grill-with-docs`) until every money and failure question had an answer. That produced the [glossary](GLOSSARY.md) and the [ADRs](docs/adr).
+3. **Wrote the spec** (`to-spec`): [.scratch/image-generation/spec.md](.scratch/image-generation/spec.md).
+4. **Explored the UI in a lab** (`prototype`): five designs on fake data in [lab/](lab). Version D (feed, minimal) was chosen, with the Sidebar layout for Credits and the Admin report. To browse it: `python3 -m http.server 4610 --directory lab`, then open http://localhost:4610.
+5. **Broke the spec into tickets** (`to-tickets`): [.scratch/image-generation/issues](.scratch/image-generation/issues), each a thin end-to-end slice with its blockers.
+6. **Implemented each ticket** (`implement`): test first with `tdd`, then `code-review`, which reviews the changes against the coding standards and against the spec in two parallel sub-agents. Each resolved ticket ends with handoff notes and what still needed a developer.
+
 ## Grader admin login
 
 - Email: `grader@example.com` (the value of `GRADER_ADMIN_EMAIL`)
@@ -104,16 +115,6 @@ Put a keyword anywhere in the prompt (case-insensitive). It counts toward text t
 | `[duplicate]` | Every webhook is delivered twice | Finishes once and is charged once |
 
 Without a keyword Pixelforge still fails a small share at random, returns occasional 503s, and sometimes sends duplicate webhooks. Pixelforge allows 3 generations at a time per account; a 4th shows "Waiting for a slot" until one finishes.
-
-## Design lab
-
-`lab/` holds five design explorations on fake data. Version **D (feed, minimal)** was chosen, with the Sidebar layout for Credits and Admin report. The lab is reference only; the app doesn't serve it.
-
-```bash
-python3 -m http.server 4610 --directory lab
-```
-
-Open http://localhost:4610 and pick tab D (`d-feed-minimal/?layout=1` shows the Sidebar layout).
 
 ## Deploying (Laravel Cloud)
 
