@@ -98,7 +98,7 @@ class PixelforgeClient
         $costs = [];
 
         foreach ((array) $response->json('data') as $day) {
-            $costs[(string) $day['date']] = Decimal::scaled((string) $day['cost_usd'], 9);
+            $costs[(string) $day['date']] = Decimal::scaled($day['cost_usd'], 9);
         }
 
         return $costs;

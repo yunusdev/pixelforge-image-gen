@@ -130,6 +130,17 @@ test('usage asks for the UTC date range and returns each day\'s cost in nanodoll
         && $request->header('Authorization') === ['Bearer test-key']);
 });
 
+test('exact cost: usage read as a JSON number keeps every nanodollar, even a tiny one', function () {
+    $reply = pixelforgeUsage(['2026-11-01' => '0', '2026-11-02' => '0']);
+    $reply['data'][0]['cost_usd'] = 0.00001;
+    $reply['data'][1]['cost_usd'] = 0.169080001;
+    Http::fake(['pixelforge.test/usage*' => Http::response($reply)]);
+
+    $usage = app(PixelforgeClient::class)->usage(CarbonImmutable::parse('2026-11-01'), CarbonImmutable::parse('2026-11-02'));
+
+    expect($usage)->toBe(['2026-11-01' => 10_000, '2026-11-02' => 169_080_001]);
+});
+
 test('usage failures come back as typed errors', function () {
     Http::fake(['pixelforge.test/usage*' => pixelforgeError('overloaded', 503, 2)]);
 
