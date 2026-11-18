@@ -25,6 +25,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $two_factor_confirmed_at
  * @property string|null $remember_token
  * @property int $balance Cached total of the ledger, in nanodollars.
+ * @property bool $is_admin Set only by `php artisan users:make-admin`.
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -47,6 +48,7 @@ class User extends Authenticatable implements PasskeyUser
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'balance' => 'integer',
+            'is_admin' => 'boolean',
         ];
     }
 

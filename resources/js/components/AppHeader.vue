@@ -14,6 +14,7 @@ import {
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { getInitials } from '@/composables/useInitials';
 import { create, credits, home, logout } from '@/routes';
+import { report as adminReport } from '@/routes/admin';
 import { edit as editProfile } from '@/routes/profile';
 
 const page = usePage();
@@ -22,10 +23,13 @@ const user = computed(() => page.props.auth.user);
 const available = computed(() => page.props.credits?.available ?? 0);
 const { isCurrentUrl } = useCurrentUrl();
 
-const navItems = [
+const navItems = computed(() => [
     { title: 'Create', href: create() },
     { title: 'Credits', href: credits() },
-];
+    ...(user.value.is_admin
+        ? [{ title: 'Admin report', href: adminReport() }]
+        : []),
+]);
 
 const mobileOpen = ref(false);
 

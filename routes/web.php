@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\CreatePageController;
 use App\Http\Controllers\CreditsController;
 use App\Http\Controllers\GenerationController;
+use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => auth()->check()
@@ -14,6 +16,10 @@ Route::middleware('auth')->group(function () {
     Route::post('generations', [GenerationController::class, 'store'])->name('generations.store');
     Route::get('credits', [CreditsController::class, 'show'])->name('credits');
     Route::post('credits/packs', [CreditsController::class, 'buyPack'])->name('credits.packs.store');
+
+    Route::middleware(EnsureUserIsAdmin::class)->group(function () {
+        Route::get('admin/report', AdminReportController::class)->name('admin.report');
+    });
 });
 
 require __DIR__.'/settings.php';
