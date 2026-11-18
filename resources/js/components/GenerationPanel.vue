@@ -9,7 +9,7 @@ import {
     SheetDescription,
     SheetTitle,
 } from '@/components/ui/sheet';
-import { formatCents } from '@/lib/money';
+import { formatCents, formatFourDecimals } from '@/lib/money';
 import type { Generation } from '@/types/generation';
 import { aspect, imageExpired, isFinal } from '@/types/generation';
 
@@ -127,9 +127,12 @@ const position = computed(() => {
                 >
                     <span
                         >est. low
-                        {{ formatCents(g.estimate_low, 'down') }}</span
+                        {{ formatFourDecimals(g.estimate_low, 'down') }}</span
                     >
-                    <span>max {{ formatCents(g.estimate_high, 'up') }}</span>
+                    <span
+                        >max
+                        {{ formatFourDecimals(g.estimate_high, 'up') }}</span
+                    >
                 </div>
                 <p
                     v-if="g.capped"

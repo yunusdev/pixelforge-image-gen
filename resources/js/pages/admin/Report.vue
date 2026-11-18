@@ -3,7 +3,7 @@ import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref, watch } from 'vue';
 import Amount from '@/components/Amount.vue';
 import TablePager from '@/components/TablePager.vue';
-import { formatCents, formatExact } from '@/lib/money';
+import { formatCents, formatExact, formatFourDecimals } from '@/lib/money';
 import { report } from '@/routes/admin';
 
 /** Sums over a group of succeeded images. Amounts in nanodollars. */
@@ -195,7 +195,7 @@ function checkAgain(): void {
 }
 
 const estimate = (low: number, high: number) =>
-    `${formatCents(low, 'down')}–${formatCents(high, 'up')}`;
+    `${formatFourDecimals(low, 'down')}–${formatFourDecimals(high, 'up')}`;
 const landed = (position: number | null) =>
     position === null ? '—' : `landed at ${position}% of range`;
 </script>
@@ -321,7 +321,7 @@ const landed = (position: number | null) =>
                         <h2
                             class="m-0 mb-2 font-sans text-xs text-muted-foreground"
                         >
-                            Matches Pixelforge
+                            Days matching Pixelforge
                         </h2>
                         <div class="font-serif text-3xl tracking-[-0.03em]">
                             {{ totals.matchingDays }}/{{ totals.days }}
@@ -348,7 +348,7 @@ const landed = (position: number | null) =>
                         <h2
                             class="m-0 mb-2 font-sans text-xs text-muted-foreground"
                         >
-                            Matches Pixelforge
+                            Days matching Pixelforge
                         </h2>
                         <div class="font-serif text-xl">Couldn't check</div>
                         <p class="m-0 text-xs text-muted-foreground">
