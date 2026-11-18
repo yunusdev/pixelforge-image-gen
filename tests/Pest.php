@@ -1,6 +1,7 @@
 <?php
 
 use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -12,6 +13,14 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
+
+/*
+| Concurrency tests run several processes against the same database, so their
+| writes must really be committed: the tables are emptied afterwards instead.
+*/
+pest()->extend(TestCase::class)
+    ->use(DatabaseTruncation::class)
+    ->in('Concurrency');
 
 /** Pixelforge's GET /v1/pricing response, as published in its docs. */
 function pixelforgePricing(array $rates = []): array
