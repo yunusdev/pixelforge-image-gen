@@ -55,7 +55,12 @@ class MissedWebhookSweep
                 continue;
             }
 
-            $this->lifecycle->apply($generation, $snapshot);
+            try {
+                $this->lifecycle->apply($generation, $snapshot);
+            } catch (IncompleteSuccess $incomplete) {
+                Log::warning($incomplete->getMessage(), ['generation' => $generation->uuid]);
+            }
+
             $this->checkedNow($generation);
             $checked++;
         }

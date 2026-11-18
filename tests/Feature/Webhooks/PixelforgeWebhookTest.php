@@ -138,6 +138,18 @@ test('exact cost: a charge above the estimate top is capped at it', function () 
         ->absorbed->toBe(33_718_750);
 });
 
+test('exact cost: a succeeded event without usage is refused so Pixelforge resends it, and the resend is charged', function () {
+    $generation = acceptedGeneration(status: GenerationStatus::Processing);
+
+    deliver(webhookEvent('generation.succeeded', succeededGeneration(['id' => 'gen_hook', 'usage' => null])))->assertServerError();
+
+    expect($generation->fresh())->status->toBe(GenerationStatus::Processing)->actual_charge->toBeNull();
+
+    deliver(webhookEvent('generation.succeeded', succeededGeneration(['id' => 'gen_hook'])))->assertOk();
+
+    expect($generation->fresh())->status->toBe(GenerationStatus::Succeeded)->actual_charge->toBe(65_056_250);
+});
+
 test('an event arriving before the send has returned is matched by the metadata UUID', function () {
     $generation = Generation::factory()->create();
 
@@ -217,6 +229,32 @@ test('failed is free: internal_error records no charge and its own message', fun
         ->actual_charge->toBeNull()
         ->charged()->toBe(0)
         ->error_code->toBe('internal_error');
+});
+
+test('failed is free: a generation we gave up on that Pixelforge still made stays free, and its cost is recorded as absorbed', function () {
+    $generation = Generation::factory()->status(GenerationStatus::Failed)->create([
+        'error_code' => 'too_busy', 'pixelforge_id' => null, 'completed_at' => '2026-11-17T23:58:00Z',
+    ]);
+    $late = fn (string $id) => webhookEvent('generation.succeeded', succeededGeneration([
+        'id' => 'gen_late', 'metadata' => ['generation_uuid' => $generation->uuid],
+    ]), id: $id);
+
+    deliver($late('evt_late'))->assertOk();
+    deliver($late('evt_late_again'))->assertOk();
+
+    // 9 text × $5 + 1100 output × $40 + 640 reasoning × $12.50 per 1M = $0.052045, billed to us once.
+    $fresh = $generation->fresh();
+    expect($fresh)
+        ->status->toBe(GenerationStatus::Failed)
+        ->error_code->toBe('too_busy')
+        ->charged()->toBe(0)
+        ->actual_charge->toBeNull()
+        ->provider_cost->toBe(52_045_000)
+        ->absorbed->toBe(52_045_000)
+        ->pixelforge_id->toBe('gen_late')
+        ->and($fresh->completed_at->toIso8601ZuluString())->toBe('2026-11-18T10:01:00Z')
+        ->and($fresh->chargeEntry()->count())->toBe(0)
+        ->and($fresh->user->fresh()->balance)->toBe(5_000_000_000);
 });
 
 test('an event for an unknown generation gets 2xx and is logged', function () {

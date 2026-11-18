@@ -26,6 +26,7 @@ class GenerationLifecycle
     public function apply(Generation $generation, PixelforgeGeneration $snapshot): Generation
     {
         return $this->locked($generation, function (Generation $generation) use ($snapshot): void {
+            $gaveUp = $generation->status === GenerationStatus::Failed && $generation->pixelforge_id === null;
             $generation->pixelforge_id ??= $snapshot->id;
 
             if ($generation->rate_input_text_tokens === null && $snapshot->rates !== null) {
@@ -41,6 +42,8 @@ class GenerationLifecycle
 
             if ($generation->status->canMoveTo($next)) {
                 $this->moveTo($generation, $next, $snapshot);
+            } elseif ($gaveUp && $next === GenerationStatus::Succeeded) {
+                $this->recordCostAfterGivingUp($generation, $snapshot);
             }
 
             $generation->save();
@@ -97,15 +100,15 @@ class GenerationLifecycle
         $usage = $snapshot->usage;
         $rates = $generation->rates() ?? $snapshot->rates;
 
+        if ($usage === null || $rates === null) {
+            throw IncompleteSuccess::for($generation);
+        }
+
         $generation->fill([
             'image_url' => $snapshot->imageUrl,
             'image_url_expires_at' => $snapshot->imageUrlExpiresAt,
             'completed_at' => $snapshot->completedAt ?? now(),
         ]);
-
-        if ($usage === null || $rates === null) {
-            return;
-        }
 
         $actual = Pricing::actualCharge($usage, $rates, $generation->estimate_high);
 
@@ -124,6 +127,33 @@ class GenerationLifecycle
     }
 
     /** @param  callable(Generation): void  $change */
+    /**
+     * We gave up on it, but a send that timed out had reached Pixelforge, which made and billed it.
+     * The user was told it failed, so it stays failed and free; we absorb what Pixelforge billed,
+     * on Pixelforge's completion day so the Admin report still matches its usage report.
+     */
+    private function recordCostAfterGivingUp(Generation $generation, PixelforgeGeneration $snapshot): void
+    {
+        $usage = $snapshot->usage;
+        $rates = $generation->rates() ?? $snapshot->rates;
+
+        if ($usage === null || $rates === null) {
+            throw IncompleteSuccess::for($generation);
+        }
+
+        $providerCost = Pricing::actualCharge($usage, $rates, $generation->estimate_high)->providerCost;
+
+        $generation->fill([
+            'usage_input_text_tokens' => $usage->inputTextTokens,
+            'usage_input_image_tokens' => $usage->inputImageTokens,
+            'usage_output_tokens' => $usage->outputTokens,
+            'usage_reasoning_tokens' => $usage->reasoningTokens,
+            'provider_cost' => $providerCost,
+            'absorbed' => $providerCost,
+            'completed_at' => $snapshot->completedAt ?? $generation->completed_at,
+        ]);
+    }
+
     private function locked(Generation $generation, callable $change): Generation
     {
         return DB::transaction(function () use ($generation, $change): Generation {

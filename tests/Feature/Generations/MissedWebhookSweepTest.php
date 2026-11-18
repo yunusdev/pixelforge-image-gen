@@ -43,6 +43,20 @@ test('exact cost: a generation unfinished for over 2 minutes is fetched and fini
         ->image_url->toBe('https://img.pixelforge.test/gen_stuck.png');
 });
 
+test('exact cost: a success reported without usage is left unfinished to ask again, and the rest of the batch is still checked', function () {
+    Http::fake([
+        PIXELFORGE_GENERATIONS.'gen_bare' => Http::response([...pixelforgeSucceeded('gen_bare'), 'usage' => null]),
+        PIXELFORGE_GENERATIONS.'gen_next' => Http::response(pixelforgeSucceeded('gen_next')),
+    ]);
+    $bare = stuckGeneration('gen_bare', minutesAgo: 5);
+    $next = stuckGeneration('gen_next');
+
+    $this->artisan('generations:check-missed')->assertSuccessful();
+
+    expect($bare->fresh())->status->toBe(GenerationStatus::Processing)->actual_charge->toBeNull()
+        ->and($next->fresh())->status->toBe(GenerationStatus::Succeeded)->actual_charge->toBe(65_056_250);
+});
+
 test('failed is free: a generation Pixelforge reports failed is finished with no charge', function () {
     Http::fake([PIXELFORGE_GENERATIONS.'gen_stuck' => Http::response(pixelforgeGeneration([
         'id' => 'gen_stuck', 'status' => 'failed',
