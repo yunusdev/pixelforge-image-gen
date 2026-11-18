@@ -23,7 +23,7 @@ const showImage = computed(
 <template>
     <button
         type="button"
-        class="mb-3.5 block w-full cursor-pointer break-inside-avoid overflow-hidden rounded-[10px] border border-border bg-card p-0 text-left transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,.04)]"
+        class="block w-full cursor-pointer overflow-hidden rounded-[10px] border border-border bg-card p-0 text-left transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,.04)]"
         :aria-label="`Open details: ${generation.prompt}`"
         @click="$emit('open')"
     >

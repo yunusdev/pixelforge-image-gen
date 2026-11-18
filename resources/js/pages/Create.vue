@@ -7,6 +7,7 @@ import GenerationPanel from '@/components/GenerationPanel.vue';
 import GenerationTile from '@/components/GenerationTile.vue';
 import PromptBar from '@/components/PromptBar.vue';
 import { Button } from '@/components/ui/button';
+import { useMasonry } from '@/composables/useMasonry';
 import type { PricingRules } from '@/lib/pricing';
 import { create } from '@/routes';
 import type { Generation } from '@/types/generation';
@@ -60,6 +61,11 @@ const selected = computed(
     () => props.generations.find((g) => g.id === selectedId.value) ?? null,
 );
 const loadingMore = ref(false);
+
+/** The gap between tiles, in px (gap-x-3.5); rows get the same gap through the masonry spans. */
+const TILE_GAP = 14;
+const feedGrid = ref<HTMLElement | null>(null);
+useMasonry(feedGrid, TILE_GAP);
 
 // Poll only the feed (and the available balance), and only while any visible generation isn't final.
 // A hidden tab pauses instead of throttling (browsers slow background timers to minutes),
@@ -202,7 +208,8 @@ function reuse(generation: Generation, retry: boolean): void {
 
     <template v-else>
         <main
-            class="columns-[150px_2] gap-3.5 px-3 pt-5 sm:columns-[260px_4] sm:px-7"
+            ref="feedGrid"
+            class="grid auto-rows-[1px] grid-cols-[repeat(auto-fill,minmax(max(150px,calc((100%-14px)/2)),1fr))] items-start gap-x-3.5 px-3 pt-5 sm:grid-cols-[repeat(auto-fill,minmax(max(260px,calc((100%-42px)/4)),1fr))] sm:px-7"
             aria-label="Your images"
         >
             <GenerationTile
