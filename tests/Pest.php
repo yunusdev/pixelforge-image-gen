@@ -81,3 +81,29 @@ function pixelforgeError(string $code, int $status, ?int $retryAfter = null): Pr
         $retryAfter === null ? [] : ['Retry-After' => (string) $retryAfter],
     );
 }
+
+/**
+ * Pixelforge's GET /v1/usage response for the given days, as its docs describe.
+ *
+ * @param  array<string, string>  $costs  UTC date => cost_usd, e.g. ['2026-11-17' => '0.169080000']
+ */
+function pixelforgeUsage(array $costs): array
+{
+    $data = array_map(fn (string $date, string $cost) => [
+        'date' => $date,
+        'generations' => 0,
+        'input_text_tokens' => 0,
+        'input_image_tokens' => 0,
+        'output_tokens' => 0,
+        'reasoning_tokens' => 0,
+        'cost_usd' => $cost,
+    ], array_keys($costs), $costs);
+
+    return [
+        'object' => 'usage',
+        'start_date' => array_key_first($costs),
+        'end_date' => array_key_last($costs),
+        'data' => $data,
+        'total' => ['generations' => 0, 'input_text_tokens' => 0, 'input_image_tokens' => 0, 'output_tokens' => 0, 'reasoning_tokens' => 0, 'cost_usd' => '0.000000000'],
+    ];
+}

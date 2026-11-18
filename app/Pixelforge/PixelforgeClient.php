@@ -2,6 +2,8 @@
 
 namespace App\Pixelforge;
 
+use App\Pricing\Decimal;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
@@ -77,6 +79,29 @@ class PixelforgeClient
         $response = $this->send(fn (PendingRequest $http) => $http->get('generations/'.rawurlencode($pixelforgeId)));
 
         return PixelforgeGeneration::fromArray($response->json());
+    }
+
+    /**
+     * GET /v1/usage: what Pixelforge billed this key per UTC day (by completion), both dates inclusive.
+     *
+     * @return array<string, int> UTC date (Y-m-d) => cost in nanodollars
+     *
+     * @throws TemporaryError|PermanentError|PixelforgeAuthError
+     */
+    public function usage(CarbonInterface $from, CarbonInterface $to): array
+    {
+        $response = $this->send(fn (PendingRequest $http) => $http->get('usage', [
+            'start_date' => $from->toDateString(),
+            'end_date' => $to->toDateString(),
+        ]));
+
+        $costs = [];
+
+        foreach ((array) $response->json('data') as $day) {
+            $costs[(string) $day['date']] = Decimal::scaled((string) $day['cost_usd'], 9);
+        }
+
+        return $costs;
     }
 
     /** @param  callable(PendingRequest): Response  $request */

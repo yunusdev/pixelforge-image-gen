@@ -5,6 +5,7 @@ use App\Pixelforge\PixelforgeAuthError;
 use App\Pixelforge\PixelforgeClient;
 use App\Pixelforge\TemporaryError;
 use App\Pricing\Rates;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -114,3 +115,23 @@ test('retrieving a generation returns its snapshot, including usage once succeed
         ->and($snapshot->usage->reasoningTokens)->toBe(640)
         ->and($snapshot->imageUrl)->toBe('https://img.pixelforge.test/gen_abc.png');
 });
+
+test('usage asks for the UTC date range and returns each day\'s cost in nanodollars', function () {
+    Http::fake(['pixelforge.test/usage*' => Http::response(pixelforgeUsage([
+        '2026-11-01' => '0.169080000',
+        '2026-11-02' => '0.000000000',
+    ]))]);
+
+    $usage = app(PixelforgeClient::class)->usage(CarbonImmutable::parse('2026-11-01'), CarbonImmutable::parse('2026-11-02'));
+
+    expect($usage)->toBe(['2026-11-01' => 169_080_000, '2026-11-02' => 0]);
+    Http::assertSent(fn (Request $request) => $request->method() === 'GET'
+        && $request->url() === 'https://pixelforge.test/usage?start_date=2026-11-01&end_date=2026-11-02'
+        && $request->header('Authorization') === ['Bearer test-key']);
+});
+
+test('usage failures come back as typed errors', function () {
+    Http::fake(['pixelforge.test/usage*' => pixelforgeError('overloaded', 503, 2)]);
+
+    app(PixelforgeClient::class)->usage(CarbonImmutable::parse('2026-11-01'), CarbonImmutable::parse('2026-11-02'));
+})->throws(TemporaryError::class);
