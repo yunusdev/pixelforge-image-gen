@@ -42,7 +42,7 @@ final class Pricing
         $providerCostHigh = array_sum(array_map(fn (TokenRange $line) => $line->providerCostHigh, $lines));
 
         return new Estimate(
-            low: intdiv($providerCostLow * self::MARKUP_NUMERATOR, self::MARKUP_DENOMINATOR),
+            low: self::chargeRoundedDown($providerCostLow),
             high: self::charge($providerCostHigh),
             providerCostLow: $providerCostLow,
             providerCostHigh: $providerCostHigh,
@@ -66,6 +66,12 @@ final class Pricing
     public static function charge(int $providerCost): int
     {
         return self::ceilDiv($providerCost * self::MARKUP_NUMERATOR, self::MARKUP_DENOMINATOR);
+    }
+
+    /** A provider cost with the markup, rounded down (the estimate's low end). */
+    public static function chargeRoundedDown(int $providerCost): int
+    {
+        return intdiv($providerCost * self::MARKUP_NUMERATOR, self::MARKUP_DENOMINATOR);
     }
 
     /** The actual charge, capped at the top of the estimate; we absorb any excess (ADR-0002). */

@@ -2,6 +2,8 @@
 
 namespace App\Credits;
 
+use App\Pricing\Nanodollars;
+
 /** A fixed amount of credits bought with one click (a fake purchase). Backed by whole dollars. */
 enum CreditPack: int
 {
@@ -11,6 +13,6 @@ enum CreditPack: int
 
     public function nanodollars(): int
     {
-        return $this->value * 1_000_000_000;
+        return $this->value * Nanodollars::PER_DOLLAR;
     }
 }

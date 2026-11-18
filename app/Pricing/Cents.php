@@ -7,20 +7,18 @@ namespace App\Pricing;
  */
 final class Cents
 {
-    private const NANODOLLARS_PER_CENT = 10_000_000;
-
     /** Rounded up to the cent, for amounts that are a ceiling ("up to $0.47"). Non-negative amounts only. */
     public static function up(int $nanodollars): string
     {
-        return self::format(intdiv($nanodollars + self::NANODOLLARS_PER_CENT - 1, self::NANODOLLARS_PER_CENT));
+        return self::format(intdiv($nanodollars + Nanodollars::PER_CENT - 1, Nanodollars::PER_CENT));
     }
 
     /** Rounded down to the cent, for amounts that can be spent ("$0.50 available"). */
     public static function down(int $nanodollars): string
     {
-        $cents = intdiv($nanodollars, self::NANODOLLARS_PER_CENT);
+        $cents = intdiv($nanodollars, Nanodollars::PER_CENT);
 
-        if ($nanodollars < 0 && $nanodollars % self::NANODOLLARS_PER_CENT !== 0) {
+        if ($nanodollars < 0 && $nanodollars % Nanodollars::PER_CENT !== 0) {
             $cents--;
         }
 

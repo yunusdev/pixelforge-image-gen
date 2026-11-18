@@ -2,7 +2,7 @@
  * The prompt bar's estimate: a mirror of App\Pricing\Pricing::estimate().
  *
  * PHP is the source of truth for anything recorded; this copy only lets the
- * estimate update as the user types. tests/Feature/PricingMirrorTest.php runs
+ * estimate update as the user types. tests/Unit/Pricing/PricingMirrorTest.php runs
  * this file under Node and pins both to the same numbers so they can't drift.
  *
  * Money is integer nanodollars (ADR-0001). Every value stays far below

@@ -71,7 +71,7 @@ test('a done generation carries its actual charge, capped flag and image', funct
             ->where('generations.0.image_url_expires_at', '2026-11-19T10:01:00Z'));
 });
 
-test('exact cost: a done generation past its image expiry shows as expired and keeps its status and actual charge', function () {
+test('a done generation past its image expiry shows as expired and keeps its status and actual charge', function () {
     Generation::factory()->for($this->user)->status(GenerationStatus::Succeeded)->create([
         'provider_cost' => 64_000_000,
         'actual_charge' => 80_000_000,

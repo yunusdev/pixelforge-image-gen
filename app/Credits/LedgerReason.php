@@ -2,6 +2,8 @@
 
 namespace App\Credits;
 
+use App\Pricing\Nanodollars;
+
 /** Why a ledger entry moved credits. */
 enum LedgerReason: string
 {
@@ -14,7 +16,7 @@ enum LedgerReason: string
     {
         return match ($this) {
             self::SignUpBonus => 'Sign-up bonus',
-            self::CreditPack => 'Bought $'.intdiv($amount, 1_000_000_000).' credit pack',
+            self::CreditPack => 'Bought $'.intdiv($amount, Nanodollars::PER_DOLLAR).' credit pack',
             self::GenerationCharge => 'Image charge',
         };
     }

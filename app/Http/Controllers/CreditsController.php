@@ -26,14 +26,14 @@ class CreditsController extends Controller
     {
         $user = $request->user();
         $balance = (int) $user->fresh()?->balance;
-        $setAside = Affordability::setAside($user);
+        $available = Affordability::availableBalance($user);
         $spending = Spending::lastDays($user, self::SPENDING_DAYS);
 
         return Inertia::render('Credits', [
             'summary' => [
-                'available' => $balance - $setAside,
+                'available' => $available,
                 'balance' => $balance,
-                'setAside' => $setAside,
+                'setAside' => $balance - $available,
                 'running' => Generation::query()->whereBelongsTo($user)->unfinished()->count(),
             ],
             'spending' => [
