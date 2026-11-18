@@ -45,7 +45,7 @@ class AdminReportController extends Controller
             'totals' => fn () => $byDay()['totals'],
             'days' => fn () => $byDay()['days'],
             'users' => fn () => $report->users($range),
-            'images' => fn () => $report->images($range, $day, $user?->id),
+            'generations' => fn () => $report->generations($range, $day, $user?->id),
             'filter' => ['day' => $day, 'user' => $user === null ? null : ['id' => $user->id, 'name' => $user->name]],
         ]);
     }

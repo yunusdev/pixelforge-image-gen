@@ -16,9 +16,9 @@ use stdClass;
  * Read model for the Admin report: succeeded generations grouped by UTC completion day and by user,
  * each day checked against Pixelforge's own usage report. Amounts are integer nanodollars.
  *
- * @phpstan-type Figures array{images: int, charged: int, providerCost: int, profit: int, capped: int, absorbed: int, estimateLow: int, estimateHigh: int, position: int|null}
- * @phpstan-type UserRow array{id: int, name: string, email: string, images: int, charged: int, providerCost: int, profit: int, capped: int, absorbed: int, estimateLow: int, estimateHigh: int, position: int|null}
- * @phpstan-type ImageRow array{id: int, prompt: string, user: array{id: int, name: string}, completedAt: string|null, estimateLow: int, estimateHigh: int, charged: int, providerCost: int, capped: bool, absorbed: int, position: int|null}
+ * @phpstan-type Figures array{generations: int, charged: int, providerCost: int, profit: int, capped: int, absorbed: int, estimateLow: int, estimateHigh: int, position: int|null}
+ * @phpstan-type UserRow array{id: int, name: string, email: string, generations: int, charged: int, providerCost: int, profit: int, capped: int, absorbed: int, estimateLow: int, estimateHigh: int, position: int|null}
+ * @phpstan-type GenerationRow array{id: int, prompt: string, user: array{id: int, name: string}, completedAt: string|null, estimateLow: int, estimateHigh: int, charged: int, providerCost: int, capped: bool, absorbed: int, position: int|null}
  */
 class AdminReport
 {
@@ -34,7 +34,7 @@ class AdminReport
     public function days(ReportRange $range): array
     {
         $usage = $this->usage($range);
-        $byDay = $this->succeeded($range)
+        $byDay = $this->billed($range)
             ->selectRaw("to_char(completed_at, 'YYYY-MM-DD') as day")
             ->selectRaw(self::SUMS)
             ->groupBy('day')
@@ -62,7 +62,7 @@ class AdminReport
         return [
             'usageChecked' => $usage !== null,
             'totals' => [
-                ...self::figures($this->succeeded($range)->selectRaw(self::SUMS)->toBase()->first()),
+                ...self::figures($this->billed($range)->selectRaw(self::SUMS)->toBase()->first()),
                 'days' => count($days),
                 'matchingDays' => count(array_filter($days, fn (array $day) => $day['check'] === 'match')),
             ],
@@ -70,10 +70,10 @@ class AdminReport
         ];
     }
 
-    /** @return LengthAwarePaginator<array-key, UserRow> users with images in the range, highest charged first */
+    /** @return LengthAwarePaginator<array-key, UserRow> users with generations in the range, highest charged first */
     public function users(ReportRange $range): LengthAwarePaginator
     {
-        $sums = $this->succeeded($range)->selectRaw('user_id')->selectRaw(self::SUMS)->groupBy('user_id')->toBase();
+        $sums = $this->billed($range)->selectRaw('user_id')->selectRaw(self::SUMS)->groupBy('user_id')->toBase();
 
         return DB::query()
             ->fromSub($sums, 'sums')
@@ -92,11 +92,11 @@ class AdminReport
     }
 
     /**
-     * Each succeeded image in the range, newest first, optionally only one UTC day's or one user's.
+     * Each succeeded generation in the range, newest first, optionally only one UTC day's or one user's.
      *
-     * @return LengthAwarePaginator<int, ImageRow>
+     * @return LengthAwarePaginator<int, GenerationRow>
      */
-    public function images(ReportRange $range, ?string $day = null, ?int $userId = null): LengthAwarePaginator
+    public function generations(ReportRange $range, ?string $day = null, ?int $userId = null): LengthAwarePaginator
     {
         return $this->succeeded($range)
             ->with('user:id,name')
@@ -106,7 +106,7 @@ class AdminReport
             ->when($userId !== null, fn (Builder $query) => $query->where('user_id', $userId))
             ->orderByDesc('completed_at')
             ->orderByDesc('id')
-            ->paginate(self::PER_PAGE, pageName: 'images_page')
+            ->paginate(self::PER_PAGE, pageName: 'generations_page')
             ->withQueryString()
             ->through(fn (Generation $generation): array => [
                 'id' => $generation->id,
@@ -137,18 +137,20 @@ class AdminReport
     }
 
     /**
-     * Sums over a group of succeeded generations. `position` is where the actual charges landed between
-     * the estimate's low and high on average, as a whole percent (display only, not money).
+     * Sums over a group of billed generations. Generation counts, charges and estimates cover successes only; the
+     * provider cost and absorbed amount also include what Pixelforge billed for generations we gave up on.
+     * `position` is where the actual charges landed between the estimate's low and high on average, as a
+     * whole percent (display only, not money).
      */
     private const SUMS = <<<'SQL'
-        count(*) as images,
-        coalesce(sum(actual_charge), 0) as charged,
+        count(*) filter (where status = 'succeeded') as generations,
+        coalesce(sum(actual_charge) filter (where status = 'succeeded'), 0) as charged,
         coalesce(sum(provider_cost), 0) as provider_cost,
         count(*) filter (where capped) as capped,
         coalesce(sum(absorbed), 0) as absorbed,
-        coalesce(sum(estimate_low), 0) as estimate_low,
-        coalesce(sum(estimate_high), 0) as estimate_high,
-        round(100 * avg(least(1, greatest(0, (actual_charge - estimate_low)::numeric / nullif(estimate_high - estimate_low, 0))))) as position
+        coalesce(sum(estimate_low) filter (where status = 'succeeded'), 0) as estimate_low,
+        coalesce(sum(estimate_high) filter (where status = 'succeeded'), 0) as estimate_high,
+        round(100 * avg(least(1, greatest(0, (actual_charge - estimate_low)::numeric / nullif(estimate_high - estimate_low, 0)))) filter (where status = 'succeeded')) as position
         SQL;
 
     /** @return Figures */
@@ -158,7 +160,7 @@ class AdminReport
         $providerCost = (int) ($row->provider_cost ?? 0);
 
         return [
-            'images' => (int) ($row->images ?? 0),
+            'generations' => (int) ($row->generations ?? 0),
             'charged' => $charged,
             'providerCost' => $providerCost,
             'profit' => $charged - $providerCost,
@@ -168,6 +170,22 @@ class AdminReport
             'estimateHigh' => (int) ($row->estimate_high ?? 0),
             'position' => isset($row->position) ? (int) $row->position : null,
         ];
+    }
+
+    /**
+     * Generations Pixelforge billed us for that completed within the range: the successes, plus any we
+     * gave up on that Pixelforge made anyway (failed and free, with what it billed absorbed).
+     *
+     * @return Builder<Generation>
+     */
+    private function billed(ReportRange $range): Builder
+    {
+        return Generation::query()
+            ->where(fn (Builder $query) => $query
+                ->where('status', GenerationStatus::Succeeded)
+                ->orWhere(fn (Builder $query) => $query->where('status', GenerationStatus::Failed)->where('absorbed', '>', 0)))
+            ->where('completed_at', '>=', $range->from)
+            ->where('completed_at', '<', $range->end());
     }
 
     /** @return Builder<Generation> succeeded generations that completed within the range */

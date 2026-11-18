@@ -81,17 +81,17 @@ test('exact cost: a generation created at 23:59 UTC and completed at 00:00 UTC c
 
     $this->actingAs($this->admin)->get(route('admin.report'))->assertInertia(function (Assert $page) {
         expect(reportDay($page, '2026-11-17'))->toMatchArray([
-            'images' => 2,
+            'generations' => 2,
             'charged' => 58_187_500 + 75_000_000,
             'providerCost' => 46_550_000 + 60_000_000,
             'profit' => 133_187_500 - 106_550_000,
         ])->and(reportDay($page, '2026-11-16'))->toMatchArray([
-            'images' => 1,
+            'generations' => 1,
             'charged' => 12_500_000,
             'providerCost' => 10_000_000,
             'profit' => 2_500_000,
         ])->and(reportDay($page, '2026-11-15'))->toMatchArray([
-            'images' => 0,
+            'generations' => 0,
             'charged' => 0,
             'providerCost' => 0,
             'profit' => 0,
@@ -107,7 +107,7 @@ test('each day counts its capped charges with the amount absorbed, and sums the 
 
     $this->actingAs($this->admin)->get(route('admin.report'))->assertInertia(function (Assert $page) {
         expect(reportDay($page, '2026-11-17'))->toMatchArray([
-            'images' => 3,
+            'generations' => 3,
             'charged' => 58_187_500 + 75_000_000 + 86_337_500,
             'capped' => 1,
             'absorbed' => 13_662_500,
@@ -133,10 +133,35 @@ test('failed is free: failed generations add nothing to charged or provider cost
 
     $this->actingAs($this->admin)->get(route('admin.report'))->assertInertia(function (Assert $page) {
         expect(reportDay($page, '2026-11-17'))->toMatchArray([
-            'images' => 1,
+            'generations' => 1,
             'charged' => 58_187_500,
             'providerCost' => 46_550_000,
         ]);
+    });
+});
+
+test('exact cost: a generation we gave up on that Pixelforge still billed counts in its cost and absorbed amount, not in the generation count or charged', function () {
+    Http::fake(['pixelforge.test/usage*' => Http::response(pixelforgeUsage(['2026-11-17' => '0.098595000']))]);
+    succeededAt('2026-11-17 09:00:00', 46_550_000); // charged 58_187_500
+    Generation::factory()->status(GenerationStatus::Failed)->create([
+        'completed_at' => '2026-11-17 10:00:00', 'error_code' => 'too_busy', 'actual_charge' => null,
+        'provider_cost' => 52_045_000, 'absorbed' => 52_045_000,
+    ]);
+
+    $this->actingAs($this->admin)->get(route('admin.report'))->assertInertia(function (Assert $page) {
+        expect(reportDay($page, '2026-11-17'))->toMatchArray([
+            'generations' => 1,
+            'charged' => 58_187_500,
+            'providerCost' => 98_595_000,
+            'profit' => -40_407_500,
+            'capped' => 0,
+            'absorbed' => 52_045_000,
+            'estimateLow' => 58_187_500,
+            'estimateHigh' => 86_337_500,
+            'position' => 0,
+            'check' => 'match',
+        ]);
+        $page->has('generations.data', 1);
     });
 });
 
@@ -175,7 +200,7 @@ test('when Pixelforge\'s usage report doesn\'t respond, our numbers still show a
     'bad key' => fn () => fn () => pixelforgeError('invalid_api_key', 401),
 ]);
 
-test('exact cost totals for the whole range sum every day, outside the range counts nowhere, and say how many days matched', function () {
+test('exact cost: totals for the whole range sum every day, outside the range counts nowhere, and say how many days matched', function () {
     Http::fake(['pixelforge.test/usage*' => Http::response(pixelforgeUsage([
         '2026-11-18' => '0.000000000',
         '2026-11-17' => '0.046550000',
@@ -187,7 +212,7 @@ test('exact cost totals for the whole range sum every day, outside the range cou
 
     $this->actingAs($this->admin)->get(route('admin.report', ['from' => '2026-11-16']))->assertInertia(fn (Assert $page) => $page
         ->where('totals', [
-            'images' => 2,
+            'generations' => 2,
             'charged' => 144_525_000,
             'providerCost' => 126_550_000,
             'profit' => 17_975_000,
@@ -201,7 +226,7 @@ test('exact cost totals for the whole range sum every day, outside the range cou
         ]));
 });
 
-test('the by-user table lists users who had images in the range, highest charged first, 20 a page', function () {
+test('the by-user table lists users who had generations in the range, highest charged first, 20 a page', function () {
     Http::fake(['pixelforge.test/usage*' => Http::response(pixelforgeUsage([]))]);
     $ada = User::factory()->create(['name' => 'Ada', 'email' => 'ada@example.com']);
     succeededAt('2026-11-17 09:00:00', 46_550_000, $ada);
@@ -218,7 +243,7 @@ test('the by-user table lists users who had images in the range, highest charged
             'id' => $ada->id,
             'name' => 'Ada',
             'email' => 'ada@example.com',
-            'images' => 2,
+            'generations' => 2,
             'charged' => 144_525_000,
             'providerCost' => 126_550_000,
             'profit' => 17_975_000,
@@ -252,7 +277,7 @@ test('paging the by-user table reloads only that table, without asking Pixelforg
     Http::assertNothingSent();
 });
 
-test('the images table lists each succeeded image in the range, newest first, 20 a page', function () {
+test('the generations table lists each succeeded generation in the range, newest first, 20 a page', function () {
     Http::fake(['pixelforge.test/usage*' => Http::response(pixelforgeUsage([]))]);
     $ada = User::factory()->create(['name' => 'Ada']);
     $capped = succeededAt('2026-11-17 09:00:00', 80_000_000, $ada, ['prompt' => 'A lighthouse at dusk']);
@@ -262,9 +287,9 @@ test('the images table lists each succeeded image in the range, newest first, 20
     succeededAt('2026-10-01 09:00:00', 46_550_000); // before the range
 
     $this->actingAs($this->admin)->get(route('admin.report'))->assertInertia(fn (Assert $page) => $page
-        ->where('images.total', 21)
-        ->has('images.data', 20)
-        ->where('images.data.0', [
+        ->where('generations.total', 21)
+        ->has('generations.data', 20)
+        ->where('generations.data.0', [
             'id' => $capped->id,
             'prompt' => 'A lighthouse at dusk',
             'user' => ['id' => $ada->id, 'name' => 'Ada'],
@@ -279,11 +304,11 @@ test('the images table lists each succeeded image in the range, newest first, 20
         ])
         ->where('filter', ['day' => null, 'user' => null]));
 
-    $this->actingAs($this->admin)->get(route('admin.report', ['images_page' => 2]))
-        ->assertInertia(fn (Assert $page) => $page->has('images.data', 1));
+    $this->actingAs($this->admin)->get(route('admin.report', ['generations_page' => 2]))
+        ->assertInertia(fn (Assert $page) => $page->has('generations.data', 1));
 });
 
-test('the images table filters to a clicked day or user', function () {
+test('the generations table filters to a clicked day or user', function () {
     Http::fake(['pixelforge.test/usage*' => Http::response(pixelforgeUsage([]))]);
     $ada = User::factory()->create(['name' => 'Ada']);
     $adaOn17 = succeededAt('2026-11-17 00:00:00', 46_550_000, $ada, ['created_at' => '2026-11-16 23:59:00']);
@@ -291,19 +316,19 @@ test('the images table filters to a clicked day or user', function () {
     $otherOn17 = succeededAt('2026-11-17 09:00:00', 46_550_000);
 
     $this->actingAs($this->admin)->get(route('admin.report', ['day' => '2026-11-17']))->assertInertia(fn (Assert $page) => $page
-        ->where('images.data.0.id', $otherOn17->id)
-        ->where('images.data.1.id', $adaOn17->id)
-        ->has('images.data', 2)
+        ->where('generations.data.0.id', $otherOn17->id)
+        ->where('generations.data.1.id', $adaOn17->id)
+        ->has('generations.data', 2)
         ->where('filter', ['day' => '2026-11-17', 'user' => null]));
 
     $this->actingAs($this->admin)->get(route('admin.report', ['user' => $ada->id]))->assertInertia(fn (Assert $page) => $page
-        ->where('images.data.0.id', $adaOn17->id)
-        ->where('images.data.1.id', $adaOn16->id)
-        ->has('images.data', 2)
+        ->where('generations.data.0.id', $adaOn17->id)
+        ->where('generations.data.1.id', $adaOn16->id)
+        ->has('generations.data', 2)
         ->where('filter', ['day' => null, 'user' => ['id' => $ada->id, 'name' => 'Ada']]));
 });
 
-test('an image filter outside the range or for an unknown user is refused', function (array $query, string $field) {
+test('a generations filter outside the range or for an unknown user is refused', function (array $query, string $field) {
     Http::fake();
 
     $this->actingAs($this->admin)->get(route('admin.report', $query))->assertSessionHasErrors($field);
@@ -330,15 +355,15 @@ test('never twice: each generation contributes once to every total, and the comp
         $charged = 58_187_500 + 86_337_500 + 12_500_000;
         $providerCost = 46_550_000 + 80_000_000 + 10_000_000;
 
-        foreach (['days', 'users.data', 'images.data'] as $table) {
+        foreach (['days', 'users.data', 'generations.data'] as $table) {
             $rows = collect(data_get($props, $table));
             expect($rows->sum('charged'))->toBe($charged, $table)
                 ->and($rows->sum('providerCost'))->toBe($providerCost, $table);
         }
-        expect(collect($props['days'])->sum('images'))->toBe(3)
-            ->and(collect($props['users']['data'])->sum('images'))->toBe(3)
-            ->and($props['images']['total'])->toBe(3)
-            ->and($props['totals'])->toMatchArray(['images' => 3, 'charged' => $charged, 'providerCost' => $providerCost, 'matchingDays' => 3, 'days' => 3])
+        expect(collect($props['days'])->sum('generations'))->toBe(3)
+            ->and(collect($props['users']['data'])->sum('generations'))->toBe(3)
+            ->and($props['generations']['total'])->toBe(3)
+            ->and($props['totals'])->toMatchArray(['generations' => 3, 'charged' => $charged, 'providerCost' => $providerCost, 'matchingDays' => 3, 'days' => 3])
             ->and(collect($props['days'])->pluck('check')->unique()->all())->toBe(['match']);
     });
 });

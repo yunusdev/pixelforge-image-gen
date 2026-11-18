@@ -6,9 +6,9 @@ import TablePager from '@/components/TablePager.vue';
 import { formatCents, formatExact, formatFourDecimals } from '@/lib/money';
 import { report } from '@/routes/admin';
 
-/** Sums over a group of succeeded images. Amounts in nanodollars. */
+/** Sums over a group of succeeded generations. Amounts in nanodollars. */
 type Figures = {
-    images: number;
+    generations: number;
     charged: number;
     providerCost: number;
     profit: number;
@@ -30,7 +30,7 @@ type Day = Figures & {
 
 type UserRow = Figures & { id: number; name: string; email: string };
 
-type ImageRow = {
+type GenerationRow = {
     id: number;
     prompt: string;
     user: { id: number; name: string };
@@ -59,7 +59,7 @@ const props = defineProps<{
     totals: Figures & { days: number; matchingDays: number };
     days: Day[];
     users: Paginator<UserRow>;
-    images: Paginator<ImageRow>;
+    generations: Paginator<GenerationRow>;
     filter: { day: string | null; user: { id: number; name: string } | null };
 }>();
 
@@ -67,7 +67,7 @@ const SECTIONS = [
     { id: 'overview', label: 'Overview' },
     { id: 'by-day', label: 'By day' },
     { id: 'by-user', label: 'By user' },
-    { id: 'by-image', label: 'Images' },
+    { id: 'by-generation', label: 'Images' },
 ];
 
 const th =
@@ -103,14 +103,14 @@ const mismatches = computed(
     () => props.days.filter((day) => day.check === 'mismatch').length,
 );
 const empty = computed(
-    () => props.totals.images === 0 && mismatches.value === 0,
+    () => props.totals.generations === 0 && mismatches.value === 0,
 );
-/** Days with no images and nothing to flag are still checked, just not listed. */
+/** Days with no generations and nothing to flag are still checked, just not listed. */
 const shownDays = computed(() =>
-    props.days.filter((day) => day.images > 0 || day.check === 'mismatch'),
+    props.days.filter((day) => day.generations > 0 || day.check === 'mismatch'),
 );
 const hiddenDays = computed(() => props.days.length - shownDays.value.length);
-const imagesTitle = computed(() => {
+const generationsTitle = computed(() => {
     if (props.filter.day) {
         return `Images that finished on ${props.filter.day}`;
     }
@@ -168,21 +168,21 @@ function pickRange(): void {
         from: from.value,
         to: to.value,
         users_page: null,
-        images_page: null,
+        generations_page: null,
         day: null,
         user: null,
     });
 }
 
-function showImages(changes: { day?: string; user?: number }): void {
+function showGenerations(changes: { day?: string; user?: number }): void {
     visit(
         {
             day: changes.day ?? null,
             user: changes.user ?? null,
-            images_page: null,
+            generations_page: null,
         },
-        ['images', 'filter'],
-        () => nextTick(() => scrollToSection('by-image')),
+        ['generations', 'filter'],
+        () => nextTick(() => scrollToSection('by-generation')),
     );
 }
 
@@ -421,15 +421,19 @@ const landed = (position: number | null) =>
                                         <button
                                             type="button"
                                             :class="linkButton"
-                                            :disabled="day.images === 0"
+                                            :disabled="day.generations === 0"
                                             @click="
-                                                showImages({ day: day.date })
+                                                showGenerations({
+                                                    day: day.date,
+                                                })
                                             "
                                         >
                                             {{ day.date }}
                                         </button>
                                     </td>
-                                    <td :class="tdNumber">{{ day.images }}</td>
+                                    <td :class="tdNumber">
+                                        {{ day.generations }}
+                                    </td>
                                     <td :class="tdNumber">
                                         {{ formatExact(day.charged) }}
                                     </td>
@@ -450,7 +454,7 @@ const landed = (position: number | null) =>
                                         {{ formatExact(day.profit) }}
                                     </td>
                                     <td :class="tdNumber">
-                                        <template v-if="day.images">
+                                        <template v-if="day.generations">
                                             {{
                                                 estimate(
                                                     day.estimateLow,
@@ -587,7 +591,9 @@ const landed = (position: number | null) =>
                                             type="button"
                                             :class="linkButton"
                                             @click="
-                                                showImages({ user: user.id })
+                                                showGenerations({
+                                                    user: user.id,
+                                                })
                                             "
                                         >
                                             {{ user.name }}
@@ -598,7 +604,9 @@ const landed = (position: number | null) =>
                                             {{ user.email }}
                                         </div>
                                     </td>
-                                    <td :class="tdNumber">{{ user.images }}</td>
+                                    <td :class="tdNumber">
+                                        {{ user.generations }}
+                                    </td>
                                     <td :class="tdNumber">
                                         {{ formatExact(user.charged) }}
                                     </td>
@@ -650,24 +658,24 @@ const landed = (position: number | null) =>
                 </section>
 
                 <section
-                    id="by-image"
+                    id="by-generation"
                     class="rounded-xl border border-border bg-card"
-                    aria-labelledby="by-image-title"
+                    aria-labelledby="by-generation-title"
                 >
                     <div
                         class="flex items-center justify-between px-7 pt-7 pb-1.5"
                     >
                         <h2
-                            id="by-image-title"
+                            id="by-generation-title"
                             class="m-0 font-sans text-xs text-muted-foreground"
                         >
-                            {{ imagesTitle }}
+                            {{ generationsTitle }}
                         </h2>
                         <button
                             v-if="filter.day || filter.user"
                             type="button"
                             class="chip"
-                            @click="showImages({})"
+                            @click="showGenerations({})"
                         >
                             Show all
                         </button>
@@ -687,7 +695,7 @@ const landed = (position: number | null) =>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-if="images.total === 0">
+                                <tr v-if="generations.total === 0">
                                     <td
                                         :colspan="filter.user ? 5 : 6"
                                         class="px-3.5 py-7 text-center text-muted-foreground"
@@ -696,20 +704,20 @@ const landed = (position: number | null) =>
                                     </td>
                                 </tr>
                                 <tr
-                                    v-for="image in images.data"
-                                    :key="image.id"
+                                    v-for="generation in generations.data"
+                                    :key="generation.id"
                                 >
                                     <td :class="[td, 'min-w-56']">
                                         <span class="line-clamp-2">{{
-                                            image.prompt
+                                            generation.prompt
                                         }}</span>
                                         <span
-                                            v-if="image.capped"
+                                            v-if="generation.capped"
                                             :class="[
                                                 tag,
                                                 'mt-1 bg-tag-red text-tag-red-foreground',
                                             ]"
-                                            :title="`${formatExact(image.absorbed)} absorbed`"
+                                            :title="`${formatExact(generation.absorbed)} absorbed`"
                                             >capped</span
                                         >
                                         <div
@@ -717,7 +725,7 @@ const landed = (position: number | null) =>
                                         >
                                             {{
                                                 new Date(
-                                                    image.completedAt,
+                                                    generation.completedAt,
                                                 ).toLocaleString(undefined, {
                                                     timeZone: 'UTC',
                                                     dateStyle: 'medium',
@@ -734,19 +742,19 @@ const landed = (position: number | null) =>
                                             'text-xs whitespace-nowrap text-muted-foreground',
                                         ]"
                                     >
-                                        {{ image.user.name }}
+                                        {{ generation.user.name }}
                                     </td>
                                     <td :class="tdNumber">
                                         {{
                                             estimate(
-                                                image.estimateLow,
-                                                image.estimateHigh,
+                                                generation.estimateLow,
+                                                generation.estimateHigh,
                                             )
                                         }}
                                     </td>
                                     <td :class="td">
                                         <template
-                                            v-if="image.position !== null"
+                                            v-if="generation.position !== null"
                                         >
                                             <div
                                                 class="relative mt-1.5 mb-1.5 h-1 rounded-xs bg-tag-gray"
@@ -755,36 +763,38 @@ const landed = (position: number | null) =>
                                                 <i
                                                     class="absolute -top-0.75 h-2.5 w-0.5 bg-foreground"
                                                     :style="{
-                                                        left: `calc(${image.position}% - 1px)`,
+                                                        left: `calc(${generation.position}% - 1px)`,
                                                     }"
                                                 />
                                             </div>
                                             <span
                                                 class="text-xs whitespace-nowrap text-muted-foreground"
-                                                >{{ image.position }}% of
+                                                >{{ generation.position }}% of
                                                 range</span
                                             >
                                         </template>
                                     </td>
                                     <td :class="tdNumber">
-                                        {{ formatExact(image.charged) }}
+                                        {{ formatExact(generation.charged) }}
                                     </td>
                                     <td :class="tdNumber">
-                                        {{ formatExact(image.providerCost) }}
+                                        {{
+                                            formatExact(generation.providerCost)
+                                        }}
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                     <TablePager
-                        v-if="images.total"
-                        :paginator="images"
+                        v-if="generations.total"
+                        :paginator="generations"
                         order="Newest first"
                         noun="images"
                         @page="
                             (n) =>
-                                visit({ images_page: n > 1 ? n : null }, [
-                                    'images',
+                                visit({ generations_page: n > 1 ? n : null }, [
+                                    'generations',
                                 ])
                         "
                     />
