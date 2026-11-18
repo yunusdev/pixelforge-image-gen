@@ -62,11 +62,13 @@ const selected = computed(
 const loadingMore = ref(false);
 
 // Poll only the feed (and the available balance), and only while any visible generation isn't final.
+// A hidden tab pauses instead of throttling (browsers slow background timers to minutes),
+// and polls at once when shown again, so a tab you come back to is never stale.
 const running = computed(() => props.generations.some((g) => !isFinal(g)));
 const poll = usePoll(
     POLL_MILLISECONDS,
     { only: ['generations', 'feed', 'credits'] },
-    { autoStart: false },
+    { autoStart: false, background: 'pause' },
 );
 watch(running, (now) => (now ? poll.start() : poll.stop()), {
     immediate: true,
